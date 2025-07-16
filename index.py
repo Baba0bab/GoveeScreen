@@ -11,14 +11,13 @@ DELAY = 0.03333333
 
 running = True
 paused = False
-brightness_level = 2  # Niveau par défaut : luminosité initiale
+brightness_level = 2
 last_color = (0, 0, 0)
 last_brightness = 0
 current_monitor_index = 1
 total_monitors = 1
 
 def send_govee_color(r, g, b, brightness_percent):
-    # Commande pour la couleur
     color_payload = {
         "msg": {
             "cmd": "colorwc",
@@ -28,7 +27,6 @@ def send_govee_color(r, g, b, brightness_percent):
             }
         }
     }
-    # Commande pour la luminosité
     brightness_payload = {
         "msg": {
             "cmd": "brightness",
@@ -87,14 +85,12 @@ def get_average_color(monitor_index):
         avg_r, avg_g, avg_b = map(int, stat.mean[:3])
 
         brightness = (0.2126 * avg_r + 0.7152 * avg_g + 0.0722 * avg_b) / 255 * 100
-        # Ajuster la luminosité selon le niveau sélectionné
-        if brightness_level == 1:  # Réduire de 2x
+        if brightness_level == 1:
             brightness *= 0.5
-        elif brightness_level == 3:  # Augmenter de 2x
+        elif brightness_level == 3:
             brightness *= 2
-        elif brightness_level == 4:  # Luminosité à 100%
+        elif brightness_level == 4:
             brightness = 100
-        # S'assurer que la luminosité est dans la plage [0, 100]
         brightness = max(0, min(100, brightness))
 
         return avg_r, avg_g, avg_b, brightness
@@ -103,13 +99,13 @@ def update_loop(label, status_label, monitor_label):
     global last_color, last_brightness, running, paused, current_monitor_index
     while running:
         if paused:
-            status_label.config(text="⏸ Pause", bg="gray")
+            status_label.config(text="⏸ Pause", bg="#606060")
             time.sleep(0.1)
             continue
         try:
             current_color = get_average_color(current_monitor_index)
         except Exception as e:
-            label.config(text="Erreur capture", bg="red")
+            label.config(text="Erreur capture", bg="#FF4040")
             time.sleep(1)
             continue
 
@@ -119,8 +115,8 @@ def update_loop(label, status_label, monitor_label):
             last_color = (r, g, b)
             last_brightness = br
             color_hex = f"#{r:02x}{g:02x}{b:02x}"
-            label.config(text=f"Couleur: {r}, {g}, {b} - Lum: {br:.1f}%", bg=color_hex)
-            status_label.config(text="🟢 Actif", bg="green")
+            label.config(text=f"Couleur: {r}, {g}, {b}\nLum: {br:.1f}%", bg=color_hex)
+            status_label.config(text="Actif", bg="#228B22")
             monitor_label.config(text=f"Écran actuel : {current_monitor_index}")
         time.sleep(DELAY)
 
@@ -148,20 +144,21 @@ def main_gui():
 
     window = tk.Tk()
     window.title("Contrôle Govee")
-    window.geometry("320x200")  # Ajusté pour la jauge
+    window.geometry("340x240")
     window.resizable(False, False)
+    window.configure(bg="#2B2B2B")
 
-    label = tk.Label(window, text="Démarrage...", font=("Arial", 12), bg="#000", fg="white")
-    label.pack(fill="x", padx=10, pady=5)
+    label = tk.Label(window, text="Démarrage...", font=("Arial", 12), bg="#2B2B2B", fg="#E0E0E0", height=2, pady=10)
+    label.pack(fill="x", padx=0, pady=0)
 
-    status_label = tk.Label(window, text="🟡 En attente...", font=("Arial", 10), bg="orange")
-    status_label.pack(fill="x", padx=10)
+    status_label = tk.Label(window, text="🟡 En attente...", font=("Arial", 10), bg="#FFA500", fg="#FFFFFF")
+    status_label.pack(fill="x", padx=30, pady=5)
 
-    monitor_label = tk.Label(window, text=f"Écran actuel : {current_monitor_index}", font=("Arial", 10))
-    monitor_label.pack(pady=2)
+    monitor_label = tk.Label(window, text=f"Écran actuel : {current_monitor_index}", font=("Arial", 10), bg="#2B2B2B", fg="#E0E0E0")
+    monitor_label.pack(pady=5)
 
-    brightness_label = tk.Label(window, text="Niveau de luminosité", font=("Arial", 10))
-    brightness_label.pack(pady=2)
+    brightness_label = tk.Label(window, text="Niveau de luminosité", font=("Arial", 10), bg="#2B2B2B", fg="#E0E0E0")
+    brightness_label.pack(pady=5)
 
     brightness_scale = tk.Scale(
         window,
@@ -171,22 +168,26 @@ def main_gui():
         length=200,
         showvalue=0,
         tickinterval=1,
+        bg="#3C3F41",
+        fg="#E0E0E0",
+        troughcolor="#4C4C4C",
+        highlightthickness=0,
         command=lambda value: set_brightness_level(int(value))
     )
-    brightness_scale.set(brightness_level)  # Position par défaut
+    brightness_scale.set(brightness_level)
     brightness_scale.pack(pady=5)
 
     def set_brightness_level(value):
         global brightness_level
         brightness_level = int(value)
 
-    btn_frame = tk.Frame(window)
+    btn_frame = tk.Frame(window, bg="#2B2B2B")
     btn_frame.pack(pady=5)
 
-    pause_button = tk.Button(btn_frame, text="⏸ Pause", command=lambda: toggle_pause(pause_button), width=10)
+    pause_button = tk.Button(btn_frame, text="⏸ Pause", command=lambda: toggle_pause(pause_button), width=10, bg="#3C3F41", fg="#FFFFFF", activebackground="#4C4C4C")
     pause_button.grid(row=0, column=0, padx=5)
 
-    monitor_button = tk.Button(btn_frame, text="Changer d'écran", command=lambda: change_monitor(monitor_label), width=12)
+    monitor_button = tk.Button(btn_frame, text="Changer d'écran", command=lambda: change_monitor(monitor_label), width=12, bg="#3C3F41", fg="#FFFFFF", activebackground="#4C4C4C")
     monitor_button.grid(row=0, column=1, padx=5)
 
     threading.Thread(target=update_loop, args=(label, status_label, monitor_label), daemon=True).start()
