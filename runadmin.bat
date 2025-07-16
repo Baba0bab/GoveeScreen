@@ -1,0 +1,1 @@
+powershell -Command "Start-Process python 'index.py' -Verb RunAs"
