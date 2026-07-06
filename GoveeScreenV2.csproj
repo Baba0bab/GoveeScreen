@@ -10,6 +10,9 @@
     <AssemblyName>GoveeScreen</AssemblyName>
     <RootNamespace>GoveeScreenV2</RootNamespace>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WFAC010 : l'analyseur WinForms conteste le DPI dans le manifeste, mais c'est la méthode correcte pour WPF -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <Version>2.0.0</Version>
   </PropertyGroup>
 
