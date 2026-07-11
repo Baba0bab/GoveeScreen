@@ -27,7 +27,8 @@ public partial class MainWindow : Window
         _engine = new SyncEngine(_govee)
         {
             BrightnessLevel = _config.BrightnessLevel,
-            SmoothTransitions = _config.SmoothTransitions
+            SmoothTransitions = _config.SmoothTransitions,
+            TargetFps = _config.CaptureFps
         };
         _engine.Updated += OnEngineUpdated;
 
@@ -36,6 +37,8 @@ public partial class MainWindow : Window
         SmoothCheck.IsChecked = _config.SmoothTransitions;
         StartupCheck.IsChecked = StartupManager.IsEnabled();
         MinimizedCheck.IsChecked = _config.StartMinimized;
+        FpsCombo.ItemsSource = new[] { 10, 15, 30, 60 };
+        FpsCombo.SelectedItem = FpsCombo.Items.Contains(_config.CaptureFps) ? _config.CaptureFps : 30;
 
         LoadMonitors();
         SetupTrayIcon();
@@ -173,6 +176,15 @@ public partial class MainWindow : Window
             return;
         _engine.SmoothTransitions = SmoothCheck.IsChecked == true;
         _config.SmoothTransitions = _engine.SmoothTransitions;
+        _config.Save();
+    }
+
+    private void FpsCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_initializing || FpsCombo.SelectedItem is not int fps)
+            return;
+        _engine.TargetFps = fps;
+        _config.CaptureFps = fps;
         _config.Save();
     }
 

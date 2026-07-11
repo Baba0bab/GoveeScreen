@@ -10,6 +10,7 @@ public class AppConfig
     public int BrightnessLevel { get; set; } = 2; // 1=50%, 2=100%, 3=200%, 4=Max
     public bool StartMinimized { get; set; }
     public bool SmoothTransitions { get; set; } = true;
+    public int CaptureFps { get; set; } = 30;
 
     private static string ConfigPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

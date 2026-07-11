@@ -6,14 +6,17 @@ public record EngineUpdate(EngineStatus Status, byte R, byte G, byte B, double B
 
 /// <summary>
 /// Boucle de synchronisation : capture GPU → analyse → envoi UDP Govee.
-/// Cadence max ~30 envois/s, mais aucun travail si l'écran est statique
-/// (AcquireNextFrame ne rend la main que sur changement d'image).
+/// La capture est cadencée à TargetFps (défaut 30) : sur un écran 144/240 Hz,
+/// le GPU ne fait le downscale que TargetFps fois par seconde au lieu de suivre
+/// la fréquence de l'écran. Aucun travail si l'écran est statique.
 /// </summary>
 public sealed class SyncEngine : IDisposable
 {
     private const int FrameTimeoutMs = 100;
     private const int MinSendIntervalMs = 33;
     private const double SmoothingAlpha = 0.35;
+
+    private volatile int _targetFps = 30;
 
     private readonly GoveeClient _govee;
     private Thread? _thread;
@@ -31,6 +34,13 @@ public sealed class SyncEngine : IDisposable
 
     public int BrightnessLevel { get; set; } = 2;
     public bool SmoothTransitions { get; set; } = true;
+
+    /// <summary>Cadence de capture cible (prise en compte immédiatement par la boucle).</summary>
+    public int TargetFps
+    {
+        get => _targetFps;
+        set => _targetFps = Math.Clamp(value, 5, 120);
+    }
 
     public bool IsPaused => _paused;
 
@@ -79,6 +89,7 @@ public sealed class SyncEngine : IDisposable
         byte[]? buffer = null;
         MonitorInfo? activeMonitor = null;
         long lastSendTicks = 0;
+        long lastCaptureTicks = 0;
 
         while (_running)
         {
@@ -129,8 +140,14 @@ public sealed class SyncEngine : IDisposable
 
             try
             {
+                // Cadencement : au plus TargetFps captures/s, même si l'écran change plus vite
+                long wait = lastCaptureTicks + 1000 / _targetFps - Environment.TickCount64;
+                if (wait > 0)
+                    Thread.Sleep((int)wait);
+
                 if (!capturer!.TryCaptureFrame(FrameTimeoutMs, buffer!))
                     continue; // Écran statique : rien à faire
+                lastCaptureTicks = Environment.TickCount64;
 
                 var color = FrameAnalyzer.Analyze(buffer!, capturer.SmallWidth, capturer.SmallHeight);
                 ProcessColor(color, activeMonitor, ref lastSendTicks);

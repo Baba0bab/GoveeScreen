@@ -110,6 +110,13 @@
                     <CheckBox x:Name="MinimizedCheck" Content="Lancer en arrière-plan (barre des tâches)"
                               Margin="2,10,0,2"
                               Checked="MinimizedCheck_Changed" Unchecked="MinimizedCheck_Changed"/>
+                    <Grid Margin="2,12,0,2">
+                        <TextBlock Text="Fréquence de capture" VerticalAlignment="Center"
+                                   ToolTip="Plus bas = moins de charge GPU/CPU. 30 FPS suffit pour un rétroéclairage."/>
+                        <ComboBox x:Name="FpsCombo" Width="100" HorizontalAlignment="Right"
+                                  ItemStringFormat="{}{0} FPS"
+                                  SelectionChanged="FpsCombo_SelectionChanged"/>
+                    </Grid>
                 </StackPanel>
             </Border>
 
