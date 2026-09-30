@@ -112,10 +112,14 @@
                               Checked="MinimizedCheck_Changed" Unchecked="MinimizedCheck_Changed"/>
                     <Grid Margin="2,12,0,2">
                         <TextBlock Text="Fréquence de capture" VerticalAlignment="Center"
-                                   ToolTip="Plus bas = moins de charge GPU/CPU. 30 FPS suffit pour un rétroéclairage."/>
-                        <ComboBox x:Name="FpsCombo" Width="100" HorizontalAlignment="Right"
-                                  ItemStringFormat="{}{0} FPS"
-                                  SelectionChanged="FpsCombo_SelectionChanged"/>
+                                   ToolTip="Auto : fluidité maximale (jusqu'à 60 FPS, uniquement quand l'image change). Manuel : plafond fixe, plus bas = moins de charge GPU/CPU."/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <CheckBox x:Name="FpsAutoCheck" Content="Auto" VerticalAlignment="Center" Margin="0,0,10,0"
+                                      Checked="FpsAutoCheck_Changed" Unchecked="FpsAutoCheck_Changed"/>
+                            <ComboBox x:Name="FpsCombo" Width="90"
+                                      ItemStringFormat="{}{0} FPS"
+                                      SelectionChanged="FpsCombo_SelectionChanged"/>
+                        </StackPanel>
                     </Grid>
                 </StackPanel>
             </Border>

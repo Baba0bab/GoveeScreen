@@ -9,7 +9,8 @@ Synchronise une lampe **Govee** (API LAN, UDP port 4003) avec la couleur moyenne
 | Capture | CPU (`mss` + PIL), 3 captures/frame à 30 FPS | **GPU** (Windows.Graphics.Capture) : la frame reste en VRAM, compatible jeux plein écran |
 | Downscale | `Image.resize` CPU | **Mipmaps GPU** (`GenerateMips`), seule une miniature ~160×90 revient au CPU |
 | Écran statique | Capture en boucle quand même | **0 % CPU** — le compositeur ne délivre une frame que si l'image change |
-| Cadence | 30 FPS fixe | FPS configurable (10/15/30/60, défaut 30) — la capture est cadencée même sur écran 144/240 Hz |
+| Cadence | 30 FPS fixe | **Auto** (jusqu'à 60 FPS, par saut de frames sans sleep) ou manuel 10/15/30/60 — cadencé même sur écran 144/240 Hz |
+| Plein écran exclusif | Non capturé | **Bascule auto en capture de fenêtre** si l'écran capturé reste noir/muet 2 s (ex. Minecraft 1.8.8), retour auto ensuite |
 | Appareil | IP codée en dur | IP configurable + **découverte automatique** (multicast Govee) |
 | Bandes noires | 2 zones fixes de 40 px | Détection ligne par ligne sur la miniature (letterbox variable) |
 | Transitions | Brutes | Lissage exponentiel (désactivable) |

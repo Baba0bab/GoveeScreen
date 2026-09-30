@@ -11,6 +11,7 @@ public class AppConfig
     public bool StartMinimized { get; set; }
     public bool SmoothTransitions { get; set; } = true;
     public int CaptureFps { get; set; } = 30;
+    public bool CaptureFpsAuto { get; set; } = true;
 
     private static string ConfigPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

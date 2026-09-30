@@ -28,7 +28,8 @@ public partial class MainWindow : Window
         {
             BrightnessLevel = _config.BrightnessLevel,
             SmoothTransitions = _config.SmoothTransitions,
-            TargetFps = _config.CaptureFps
+            TargetFps = _config.CaptureFps,
+            AutoFps = _config.CaptureFpsAuto
         };
         _engine.Updated += OnEngineUpdated;
 
@@ -39,6 +40,8 @@ public partial class MainWindow : Window
         MinimizedCheck.IsChecked = _config.StartMinimized;
         FpsCombo.ItemsSource = new[] { 10, 15, 30, 60 };
         FpsCombo.SelectedItem = FpsCombo.Items.Contains(_config.CaptureFps) ? _config.CaptureFps : 30;
+        FpsAutoCheck.IsChecked = _config.CaptureFpsAuto;
+        FpsCombo.IsEnabled = !_config.CaptureFpsAuto;
 
         LoadMonitors();
         SetupTrayIcon();
@@ -176,6 +179,17 @@ public partial class MainWindow : Window
             return;
         _engine.SmoothTransitions = SmoothCheck.IsChecked == true;
         _config.SmoothTransitions = _engine.SmoothTransitions;
+        _config.Save();
+    }
+
+    private void FpsAutoCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializing)
+            return;
+        bool auto = FpsAutoCheck.IsChecked == true;
+        _engine.AutoFps = auto;
+        FpsCombo.IsEnabled = !auto;
+        _config.CaptureFpsAuto = auto;
         _config.Save();
     }
 

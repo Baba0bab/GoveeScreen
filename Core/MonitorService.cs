@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 using Vortice.DXGI;
 
 namespace GoveeScreenV2.Core;
@@ -255,6 +256,98 @@ public static class MonitorService
         if (EnumDisplaySettings(deviceName, ENUM_CURRENT_SETTINGS, ref devMode) && devMode.dmPelsWidth > 0)
             return ((int)devMode.dmPelsWidth, (int)devMode.dmPelsHeight);
         return null;
+    }
+
+    // ===== HMONITOR & détection de fenêtre plein écran =====
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MONITORINFOEX
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szDevice;
+    }
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr dwData);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetShellWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+
+    /// <summary>HMONITOR de l'écran dont le device GDI est <paramref name="deviceName"/> ("\\.\DISPLAY1").</summary>
+    public static IntPtr GetMonitorHandle(string deviceName)
+    {
+        IntPtr found = IntPtr.Zero;
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (hMonitor, _, _, _) =>
+        {
+            var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+            if (GetMonitorInfoW(hMonitor, ref info) &&
+                string.Equals(info.szDevice, deviceName, StringComparison.OrdinalIgnoreCase))
+            {
+                found = hMonitor;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    /// <summary>
+    /// Fenêtre au premier plan si elle couvre entièrement l'écran donné (jeu plein écran),
+    /// IntPtr.Zero sinon. Sert de cible de secours quand la capture d'écran ne voit pas
+    /// le contenu (plein écran exclusif, ex. Minecraft 1.8.8).
+    /// </summary>
+    public static IntPtr GetFullscreenWindow(string deviceName)
+    {
+        IntPtr hMonitor = GetMonitorHandle(deviceName);
+        if (hMonitor == IntPtr.Zero)
+            return IntPtr.Zero;
+
+        IntPtr hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero || hwnd == GetShellWindow())
+            return IntPtr.Zero;
+        if (MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) != hMonitor)
+            return IntPtr.Zero;
+
+        var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+        if (!GetMonitorInfoW(hMonitor, ref info) || !GetWindowRect(hwnd, out RECT rect))
+            return IntPtr.Zero;
+        if (rect.Left > info.rcMonitor.Left || rect.Top > info.rcMonitor.Top ||
+            rect.Right < info.rcMonitor.Right || rect.Bottom < info.rcMonitor.Bottom)
+            return IntPtr.Zero;
+
+        // Exclut le bureau lui-même (fond d'écran plein écran)
+        var className = new StringBuilder(64);
+        GetClassName(hwnd, className, className.Capacity);
+        if (className.ToString() is "Progman" or "WorkerW")
+            return IntPtr.Zero;
+
+        return hwnd;
     }
 
     public static List<MonitorInfo> GetMonitors()
