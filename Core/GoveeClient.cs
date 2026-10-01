@@ -10,6 +10,8 @@ public record GoveeDevice(string Ip, string Model, string DeviceId)
     public override string ToString() => $"{Model} ({Ip})";
 }
 
+public record GoveeStatus(bool IsOn, int Brightness, byte R, byte G, byte B);
+
 /// <summary>
 /// Client UDP pour le protocole LAN Govee (port 4003 commandes, 4001 multicast découverte, 4002 réponses).
 /// </summary>
@@ -125,6 +127,63 @@ public sealed class GoveeClient : IDisposable
         }
 
         return devices;
+    }
+
+    /// <summary>
+    /// Interroge l'état de la lampe ("devStatus") : null si elle ne répond pas dans le délai.
+    /// La requête part du port de réponse 4002, la réponse revient donc sur le même socket.
+    /// </summary>
+    public static async Task<GoveeStatus?> QueryStatusAsync(string ip, TimeSpan timeout, CancellationToken ct = default)
+    {
+        if (!IPAddress.TryParse(ip, out var address))
+            return null;
+
+        using var socket = new UdpClient();
+        socket.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        socket.Client.Bind(new IPEndPoint(IPAddress.Any, ResponsePort));
+
+        byte[] query = Encoding.UTF8.GetBytes("{\"msg\":{\"cmd\":\"devStatus\",\"data\":{}}}");
+        await socket.SendAsync(query, query.Length, new IPEndPoint(address, CommandPort));
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(timeout);
+
+        try
+        {
+            while (true)
+            {
+                var result = await socket.ReceiveAsync(cts.Token);
+                if (!result.RemoteEndPoint.Address.Equals(address))
+                    continue;
+                try
+                {
+                    using var doc = JsonDocument.Parse(result.Buffer);
+                    var msg = doc.RootElement.GetProperty("msg");
+                    if (msg.GetProperty("cmd").GetString() != "devStatus")
+                        continue;
+
+                    var data = msg.GetProperty("data");
+                    bool isOn = data.TryGetProperty("onOff", out var onOff) && onOff.GetInt32() == 1;
+                    int brightness = data.TryGetProperty("brightness", out var b) ? b.GetInt32() : 0;
+                    byte r = 0, g = 0, bl = 0;
+                    if (data.TryGetProperty("color", out var color))
+                    {
+                        r = color.TryGetProperty("r", out var cr) ? cr.GetByte() : (byte)0;
+                        g = color.TryGetProperty("g", out var cg) ? cg.GetByte() : (byte)0;
+                        bl = color.TryGetProperty("b", out var cb) ? cb.GetByte() : (byte)0;
+                    }
+                    return new GoveeStatus(isOn, brightness, r, g, bl);
+                }
+                catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
+                {
+                    // Réponse inattendue ignorée
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
     }
 
     public void Dispose()

@@ -15,7 +15,7 @@ Synchronise une lampe **Govee** (API LAN, UDP port 4003) avec la couleur moyenne
 | Bandes noires | 2 zones fixes de 40 px | Détection ligne par ligne sur la miniature (letterbox variable) |
 | Transitions | Brutes | Lissage exponentiel (désactivable) |
 | Démarrage Windows | Raccourci dossier Startup | Clé de registre `HKCU\...\Run` |
-| UI | Tkinter | WPF thème sombre, barre de titre sombre, tray icon |
+| UI | Tkinter | WPF façon Windows 11 : menu latéral repliable, couleur en direct, menu d'actions rapides dans la zone de notification |
 
 La config V1 (`~/govee_config.json`) est migrée automatiquement au premier lancement. La nouvelle config vit dans `%APPDATA%\GoveeScreen\config.json`.
 
@@ -34,7 +34,19 @@ dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile
 - [Core/SyncEngine.cs](Core/SyncEngine.cs) — boucle capture → analyse → envoi (max 30 msg/s, envoi seulement sur changement)
 - [Core/GoveeClient.cs](Core/GoveeClient.cs) — protocole LAN Govee (commandes UDP 4003, découverte multicast 4001/4002)
 - [Core/MonitorService.cs](Core/MonitorService.cs) — énumération DXGI + noms commerciaux des écrans
-- [MainWindow.xaml](MainWindow.xaml) — interface
+- [MainWindow.xaml](MainWindow.xaml) — fenêtre : menu latéral + pages Accueil / Lampe / Écran / Paramètres
+- [Themes/Theme.xaml](Themes/Theme.xaml) — palette et styles (cartes, interrupteurs, contrôles segmentés, menu)
+- [UI/TrayIcon.cs](UI/TrayIcon.cs) — icône de la zone de notification et son menu sombre (pause, intensité, écran)
+
+## Interface
+
+- **Accueil** : couleur envoyée à la lampe en direct, pause / reprise, intensité, raccourcis vers les autres pages
+- **Lampe** : adresse IP, test de connexion (`devStatus`), détection automatique des lampes du réseau
+- **Écran** : choix de l'écran source, fréquence de capture, lissage
+- **Paramètres** : démarrage avec Windows, démarrage masqué, fermeture dans la zone de notification
+- Menu replié en rail d'icônes (☰, automatique sous 760 px de large) ; état de la synchro toujours visible en bas du menu
+- Zone de notification : clic gauche = ouvrir, clic droit = actions rapides sans ouvrir la fenêtre
+- Raccourcis : `Ctrl+1` … `Ctrl+4` pour changer de page, `Ctrl+P` pour pause / reprise
 
 ## Prérequis côté lampe
 

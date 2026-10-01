@@ -4,8 +4,11 @@ using Vortice.DXGI;
 
 namespace GoveeScreenV2.Core;
 
-public record MonitorInfo(string DeviceName, string FriendlyName, int AdapterIndex, int OutputIndex, int Width, int Height)
+public record MonitorInfo(string DeviceName, string Name, int AdapterIndex, int OutputIndex, int Width, int Height, bool IsPrimary)
 {
+    public string FriendlyName => $"{Name} ({Width}×{Height})";
+    public string Resolution => $"{Width} × {Height}";
+
     public override string ToString() => FriendlyName;
 }
 
@@ -392,11 +395,15 @@ public static class MonitorService
                             usedNames[friendly] = 1;
                         }
 
+                        // L'écran principal est toujours à l'origine du bureau virtuel
+                        bool isPrimary = desc.DesktopCoordinates.Left == 0 && desc.DesktopCoordinates.Top == 0;
+
                         monitors.Add(new MonitorInfo(
                             deviceName,
-                            $"{friendly} ({resolution.Item1}×{resolution.Item2})",
+                            friendly,
                             (int)a, (int)o,
-                            resolution.Item1, resolution.Item2));
+                            resolution.Item1, resolution.Item2,
+                            isPrimary));
                     }
                 }
             }

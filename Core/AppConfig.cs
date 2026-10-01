@@ -12,10 +12,13 @@ public class AppConfig
     public bool SmoothTransitions { get; set; } = true;
     public int CaptureFps { get; set; } = 30;
     public bool CaptureFpsAuto { get; set; } = true;
+    public string? DeviceModel { get; set; }   // SKU renvoyé par la découverte (ex. "H6008"), affichage seulement
+    public bool CloseToTray { get; set; }      // ✕ masque la fenêtre au lieu de quitter
 
-    private static string ConfigPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "GoveeScreen", "config.json");
+    public static string ConfigDirectory => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GoveeScreen");
+
+    private static string ConfigPath => Path.Combine(ConfigDirectory, "config.json");
 
     public static AppConfig Load()
     {
