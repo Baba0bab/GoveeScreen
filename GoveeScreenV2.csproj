@@ -3,10 +3,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- SDK 26100 : GraphicsCaptureSession.MinUpdateInterval (Windows 11 24H2+, détecté à l'exécution) -->
-    <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <!-- Vortice 3.6.x requiert WinRT.Runtime 2.1+, absent du targeting pack par défaut du SDK 8.0.200 -->
-    <WindowsSdkPackageVersion>10.0.26100.57</WindowsSdkPackageVersion>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -1,6 +1,6 @@
 # GoveeScreen V2
 
-Synchronise une lampe **Govee** (API LAN, UDP port 4003) avec la couleur moyenne de l'écran — réécriture complète de la V1 Python, en **C# / .NET 8 + WPF**.
+Synchronise une lampe **Govee** (API LAN, UDP port 4003) avec la couleur moyenne de l'écran — réécriture complète de la V1 Python, en **C# / .NET 10 + WPF**.
 
 ## Ce qui change par rapport à la V1
 
@@ -25,7 +25,7 @@ La config V1 (`~/govee_config.json`) est migrée automatiquement au premier lanc
 ```powershell
 dotnet run                # debug
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
-# → bin\Release\net8.0-windows10.0.26100.0\win-x64\publish\GoveeScreen.exe (nécessite le runtime .NET 8, précompilé ReadyToRun)
+# → bin\Release\net10.0-windows10.0.26100.0\win-x64\publish\GoveeScreen.exe (nécessite le runtime .NET 10 Desktop, précompilé ReadyToRun)
 ```
 
 ## Architecture
