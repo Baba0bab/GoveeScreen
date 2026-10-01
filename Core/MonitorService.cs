@@ -12,6 +12,9 @@ public record MonitorInfo(string DeviceName, string Name, int AdapterIndex, int 
     public override string ToString() => FriendlyName;
 }
 
+/// <summary>Rectangle en pixels physiques, relatif au coin haut-gauche de l'écran.</summary>
+public readonly record struct ScreenRegion(int X, int Y, int Width, int Height);
+
 /// <summary>
 /// Énumère les écrans via DXGI et les associe à leur nom commercial.
 /// Le nom vient de l'EDID via QueryDisplayConfig (ex. "LG ULTRAGEAR") — EnumDisplayDevices
@@ -321,27 +324,43 @@ public static class MonitorService
     }
 
     /// <summary>
-    /// Fenêtre au premier plan si elle couvre entièrement l'écran donné (jeu plein écran),
-    /// IntPtr.Zero sinon. Sert de cible de secours quand la capture d'écran ne voit pas
-    /// le contenu (plein écran exclusif, ex. Minecraft 1.8.8).
+    /// État de l'écran pour la capture, en un seul passage (un seul EnumDisplayMonitors) :
+    /// <list type="bullet">
+    /// <item>FullscreenWindow : fenêtre au premier plan si elle couvre entièrement l'écran (jeu
+    /// plein écran), IntPtr.Zero sinon. Sert de cible de secours quand la capture d'écran ne
+    /// voit pas le contenu (plein écran exclusif, ex. Minecraft 1.8.8).</item>
+    /// <item>WorkArea : zone de travail (sans la barre des tâches ni les barres ancrées),
+    /// relative à l'écran.</item>
+    /// </list>
+    /// Null si l'écran est introuvable.
     /// </summary>
-    public static IntPtr GetFullscreenWindow(string deviceName)
+    public static (IntPtr FullscreenWindow, ScreenRegion WorkArea)? GetScreenState(string deviceName)
     {
         IntPtr hMonitor = GetMonitorHandle(deviceName);
-        if (hMonitor == IntPtr.Zero)
-            return IntPtr.Zero;
+        var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+        if (hMonitor == IntPtr.Zero || !GetMonitorInfoW(hMonitor, ref info))
+            return null;
 
+        var workArea = new ScreenRegion(
+            info.rcWork.Left - info.rcMonitor.Left,
+            info.rcWork.Top - info.rcMonitor.Top,
+            info.rcWork.Right - info.rcWork.Left,
+            info.rcWork.Bottom - info.rcWork.Top);
+        return (FindFullscreenWindow(hMonitor, info.rcMonitor), workArea);
+    }
+
+    private static IntPtr FindFullscreenWindow(IntPtr hMonitor, RECT monitor)
+    {
         IntPtr hwnd = GetForegroundWindow();
         if (hwnd == IntPtr.Zero || hwnd == GetShellWindow())
             return IntPtr.Zero;
         if (MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) != hMonitor)
             return IntPtr.Zero;
 
-        var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
-        if (!GetMonitorInfoW(hMonitor, ref info) || !GetWindowRect(hwnd, out RECT rect))
+        if (!GetWindowRect(hwnd, out RECT rect))
             return IntPtr.Zero;
-        if (rect.Left > info.rcMonitor.Left || rect.Top > info.rcMonitor.Top ||
-            rect.Right < info.rcMonitor.Right || rect.Bottom < info.rcMonitor.Bottom)
+        if (rect.Left > monitor.Left || rect.Top > monitor.Top ||
+            rect.Right < monitor.Right || rect.Bottom < monitor.Bottom)
             return IntPtr.Zero;
 
         // Exclut le bureau lui-même (fond d'écran plein écran)

@@ -3,19 +3,14 @@ using System.Runtime.InteropServices;
 namespace GoveeScreenV2.UI;
 
 /// <summary>
-/// Attributs DWM du cadre de fenêtre (mode sombre, couleurs de la barre de titre, coins arrondis).
+/// Attributs DWM du cadre de fenêtre (mode sombre, couleurs de la barre de titre).
 /// Les attributs non pris en charge (Windows 10) sont simplement ignorés par le système.
 /// </summary>
 internal static class Dwm
 {
     public const int UseImmersiveDarkMode = 20;
-    public const int WindowCornerPreference = 33;
-    public const int BorderColor = 34;
     public const int CaptionColor = 35;
     public const int TextColor = 36;
-
-    public const int CornerRound = 2;
-    public const int CornerRoundSmall = 3;
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);

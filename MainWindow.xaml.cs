@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -20,44 +19,38 @@ public partial class MainWindow : Window
     private const double NavCompactWidth = 56;
     private const double NavAutoCompactBelow = 760;   // largeur de fenêtre sous laquelle le menu se replie
 
+    // Halo de l'orbe : profil d'opacité mesuré d'un disque de 100 px flouté (rayon 36), en
+    // distance au centre (px) → opacité. Le dégradé radial le reproduit à 3/255 près, sans la
+    // passe d'effet (surface intermédiaire + shader) qu'imposait un BlurEffect à chaque couleur.
+    private static readonly (double Distance, byte Alpha)[] GlowProfile =
+    {
+        (0, 255), (20, 252), (25, 248), (30, 237), (35, 219), (40, 190), (45, 153), (50, 111),
+        (55, 72), (60, 42), (65, 21), (70, 9), (75, 3), (80, 1), (86, 0)
+    };
+    private const double GlowRadius = 86;   // demi-largeur de OrbGlow
+
     private const string PauseGlyph = "";
     private const string PlayGlyph = "";
 
-    private readonly AppConfig _config;
-    private readonly GoveeClient _govee;
-    private readonly SyncEngine _engine;
-    private readonly TrayIcon _tray;
+    private readonly AppController _app;
     private readonly RadioButton[] _navItems;
     private readonly FrameworkElement[] _pages;
     private readonly SolidColorBrush _liveBrush;
+    private readonly RadialGradientBrush _glowBrush = new();
     private readonly Color _idleColor;
 
-    private List<MonitorInfo> _monitors = new();
-    private MonitorInfo? _selectedMonitor;
-    private EngineStatus _status = EngineStatus.Starting;
-    private Color _lastColor;
-    private double _lastBrightness;
-    private bool _hasColor;
     private bool _updatingUi = true;   // vrai pendant les mises à jour programmatiques des contrôles
     private bool _navCompact;
     private bool _wasNarrow;
-    private bool _exitRequested;
-    private DateTime _lastUiUpdate = DateTime.MinValue;
 
-    public MainWindow()
+    /// <summary>
+    /// Vue de l'application : l'état (config, moteur, écrans) vit dans <see cref="AppController"/>,
+    /// qui crée la fenêtre à l'ouverture et la détruit quand elle part en zone de notification.
+    /// </summary>
+    public MainWindow(AppController app)
     {
+        _app = app;
         InitializeComponent();
-
-        _config = AppConfig.Load();
-        _govee = new GoveeClient(_config.DeviceIp);
-        _engine = new SyncEngine(_govee)
-        {
-            BrightnessLevel = _config.BrightnessLevel,
-            SmoothTransitions = _config.SmoothTransitions,
-            TargetFps = _config.CaptureFps,
-            AutoFps = _config.CaptureFpsAuto
-        };
-        _engine.Updated += OnEngineUpdated;
 
         _navItems = new[] { NavHome, NavDevice, NavDisplay, NavSettings };
         _pages = new FrameworkElement[] { HomePage, DevicePage, DisplayPage, SettingsPage };
@@ -68,48 +61,39 @@ public partial class MainWindow : Window
         _idleColor = (Color)FindResource("IdleColor");
         _liveBrush = new SolidColorBrush(_idleColor);
         Orb.Fill = _liveBrush;
-        OrbGlow.Fill = _liveBrush;
         SidebarSwatch.Fill = _liveBrush;
+        foreach (var (distance, _) in GlowProfile)
+            _glowBrush.GradientStops.Add(new GradientStop(Colors.Transparent, distance / GlowRadius));
+        OrbGlow.Fill = _glowBrush;
 
-        IpTextBox.Text = _config.DeviceIp;
-        SmoothSwitch.IsChecked = _config.SmoothTransitions;
+        IpTextBox.Text = _app.Config.DeviceIp;
+        SmoothSwitch.IsChecked = _app.Config.SmoothTransitions;
         StartupSwitch.IsChecked = StartupManager.IsEnabled();
-        MinimizedSwitch.IsChecked = _config.StartMinimized;
-        CloseToTraySwitch.IsChecked = _config.CloseToTray;
+        MinimizedSwitch.IsChecked = _app.Config.StartMinimized;
+        CloseToTraySwitch.IsChecked = _app.Config.CloseToTray;
         AboutCard.Description = $"Version {typeof(App).Assembly.GetName().Version?.ToString(3)} · synchronisation écran → lampe Govee";
         ResetIpHint();
         ResetConnectionHint();
         SyncBrightnessSegments();
         SyncFpsSegments();
+        SyncPauseState();
+        SyncMonitors();
 
-        _tray = new TrayIcon(GetTrayState);
-        _tray.OpenRequested += ShowFromTray;
-        _tray.PauseToggled += TogglePause;
-        _tray.BrightnessSelected += SetBrightnessLevel;
-        _tray.MonitorSelected += SelectMonitor;
-        _tray.ExitRequested += ExitApplication;
-
-        LoadMonitors();
-        UpdateSummaryTiles();
         NavHome.IsChecked = true;
         ShowPage(0, animate: false);
-        ApplyStatus(EngineStatus.Starting);
+        ApplyStatus();
 
         _updatingUi = false;
 
         SourceInitialized += (_, _) => ApplyFrameTheme();
-        Loaded += (_, _) =>
-        {
-            _govee.TurnOn();
-            _engine.Start();
-            if (_config.StartMinimized || Environment.GetCommandLineArgs().Contains("--minimized"))
-                HideToTray();
-        };
         SizeChanged += OnSizeChanged;
+        IsVisibleChanged += (_, _) => NotifyVisibility();
+        StateChanged += (_, _) => NotifyVisibility();
         PreviewKeyDown += OnPreviewKeyDown;
-        Closing += OnWindowClosing;
-        Closed += OnWindowClosed;
     }
+
+    private void NotifyVisibility() =>
+        _app.SetWindowVisible(IsVisible && WindowState != WindowState.Minimized);
 
     // ===== Cadre de fenêtre =====
 
@@ -211,33 +195,22 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.P)
         {
-            TogglePause();
+            _app.TogglePause();
             e.Handled = true;
         }
     }
 
     // ===== Pause =====
 
-    private void PauseButton_Click(object sender, RoutedEventArgs e) => TogglePause();
+    private void PauseButton_Click(object sender, RoutedEventArgs e) => _app.TogglePause();
 
-    private void TogglePause() => SetPaused(!_engine.IsPaused);
-
-    private void SetPaused(bool paused)
+    internal void SyncPauseState()
     {
-        _engine.SetPaused(paused);
-        if (paused)
-            _govee.TurnOff();
-        else
-            _govee.TurnOn();
-
+        bool paused = _app.Engine.IsPaused;
         PauseButton.Tag = paused ? PlayGlyph : PauseGlyph;
         PauseButton.Content = paused ? "Reprendre" : "Mettre en pause";
         SidebarPauseButton.Content = paused ? PlayGlyph : PauseGlyph;
         SidebarPauseButton.ToolTip = paused ? "Reprendre (Ctrl+P)" : "Mettre en pause (Ctrl+P)";
-
-        // Écran statique : le moteur n'enverra rien tant que l'image ne change pas,
-        // on repasse donc directement en "actif" avec la dernière couleur connue
-        ApplyStatus(paused ? EngineStatus.Paused : EngineStatus.Active);
     }
 
     // ===== Intensité =====
@@ -246,20 +219,11 @@ public partial class MainWindow : Window
     {
         if (_updatingUi || sender is not RadioButton { Tag: string tag })
             return;
-        SetBrightnessLevel(int.Parse(tag));
+        _app.SetBrightnessLevel(int.Parse(tag));
     }
 
-    private void SetBrightnessLevel(int level)
-    {
-        level = Math.Clamp(level, 1, 4);
-        _engine.BrightnessLevel = level;
-        _config.BrightnessLevel = level;
-        _config.Save();
-        SyncBrightnessSegments();
-    }
-
-    private void SyncBrightnessSegments() =>
-        CheckSegment(BrightnessSegments, _config.BrightnessLevel.ToString());
+    internal void SyncBrightnessSegments() =>
+        CheckSegment(BrightnessSegments, _app.Config.BrightnessLevel.ToString());
 
     private void CheckSegment(Panel segments, string tag)
     {
@@ -273,55 +237,32 @@ public partial class MainWindow : Window
 
     // ===== Écrans =====
 
-    private void LoadMonitors()
+    /// <summary>Liste des écrans et sélection, depuis l'état de l'application.</summary>
+    internal void SyncMonitors()
     {
-        _monitors = MonitorService.GetMonitors();
-        var selected = _monitors.FirstOrDefault(m => m.DeviceName == _config.MonitorDeviceName)
-                       ?? _monitors.FirstOrDefault();
-
         var wasUpdating = _updatingUi;
         _updatingUi = true;
-        MonitorsList.ItemsSource = _monitors;
-        MonitorsList.SelectedItem = selected;
+        if (!ReferenceEquals(MonitorsList.ItemsSource, _app.Monitors))
+            MonitorsList.ItemsSource = _app.Monitors;
+        MonitorsList.SelectedItem = _app.SelectedMonitor;
         _updatingUi = wasUpdating;
 
-        MonitorsList.Visibility = _monitors.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        NoMonitorPlaceholder.Visibility = _monitors.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
-        ApplyMonitor(selected, save: false);
+        bool any = _app.Monitors.Count > 0;
+        MonitorsList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+        NoMonitorPlaceholder.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+        UpdateSummaryTiles();
     }
 
-    private void RefreshMonitors_Click(object sender, RoutedEventArgs e) => LoadMonitors();
+    private void RefreshMonitors_Click(object sender, RoutedEventArgs e) => _app.LoadMonitors();
 
     private void MonitorsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_updatingUi)
             return;
         if (MonitorsList.SelectedItem is MonitorInfo monitor)
-            ApplyMonitor(monitor, save: true);
+            _app.SelectMonitor(monitor);
         else
-            SelectMonitor(_selectedMonitor); // Ctrl+clic : on ne désélectionne pas
-    }
-
-    private void SelectMonitor(MonitorInfo? monitor)
-    {
-        var wasUpdating = _updatingUi;
-        _updatingUi = true;
-        MonitorsList.SelectedItem = monitor;
-        _updatingUi = wasUpdating;
-        ApplyMonitor(monitor, save: true);
-    }
-
-    private void ApplyMonitor(MonitorInfo? monitor, bool save)
-    {
-        _selectedMonitor = monitor;
-        _engine.SetMonitor(monitor);
-        if (save && monitor is not null)
-        {
-            _config.MonitorDeviceName = monitor.DeviceName;
-            _config.Save();
-        }
-        UpdateSummaryTiles();
-        ApplyStatus(_status);
+            SyncMonitors(); // Ctrl+clic : on ne désélectionne pas
     }
 
     // ===== Capture =====
@@ -330,30 +271,18 @@ public partial class MainWindow : Window
     {
         if (_updatingUi || sender is not RadioButton { Tag: string tag })
             return;
-
-        int fps = int.Parse(tag); // 0 = Auto
-        bool auto = fps == 0;
-        _engine.AutoFps = auto;
-        _config.CaptureFpsAuto = auto;
-        if (!auto)
-        {
-            _engine.TargetFps = fps;
-            _config.CaptureFps = fps;
-        }
-        _config.Save();
+        _app.SetCaptureFps(int.Parse(tag)); // 0 = Auto
         UpdateSummaryTiles();
     }
 
     private void SyncFpsSegments() =>
-        CheckSegment(FpsSegments, _config.CaptureFpsAuto ? "0" : _config.CaptureFps.ToString());
+        CheckSegment(FpsSegments, _app.Config.CaptureFpsAuto ? "0" : _app.Config.CaptureFps.ToString());
 
     private void SmoothSwitch_Changed(object sender, RoutedEventArgs e)
     {
         if (_updatingUi)
             return;
-        _engine.SmoothTransitions = SmoothSwitch.IsChecked == true;
-        _config.SmoothTransitions = _engine.SmoothTransitions;
-        _config.Save();
+        _app.SetSmoothTransitions(SmoothSwitch.IsChecked == true);
         UpdateSummaryTiles();
     }
 
@@ -377,18 +306,8 @@ public partial class MainWindow : Window
         IpTextBox.Tag = null;
         ResetIpHint();
 
-        bool changed = ip != _config.DeviceIp;
-        if (!changed && (model is null || model == _config.DeviceModel))
-            return true;
-
-        _config.DeviceIp = ip;
-        _config.DeviceModel = model ?? (changed ? null : _config.DeviceModel);
-        _govee.DeviceIp = ip;
-        _config.Save();
-        if (changed)
+        if (_app.SetDevice(ip, model))
         {
-            if (!_engine.IsPaused)
-                _govee.TurnOn();
             ResetConnectionHint();
 
             // Garde la liste des lampes détectées cohérente avec une IP saisie à la main
@@ -421,7 +340,7 @@ public partial class MainWindow : Window
         else if (e.Key == Key.Escape)
         {
             // Annule la saisie
-            IpTextBox.Text = _config.DeviceIp;
+            IpTextBox.Text = _app.Config.DeviceIp;
             IpTextBox.Tag = null;
             ResetIpHint();
             Keyboard.ClearFocus();
@@ -438,7 +357,7 @@ public partial class MainWindow : Window
         ConnectionCard.Description = "Interrogation de la lampe…";
         try
         {
-            var status = await GoveeClient.QueryStatusAsync(_config.DeviceIp, TimeSpan.FromSeconds(2));
+            var status = await GoveeClient.QueryStatusAsync(_app.Config.DeviceIp, TimeSpan.FromSeconds(2));
             bool ok = status is not null;
             ConnectionCard.Description = ok
                 ? $"La lampe répond · {(status!.IsOn ? "allumée" : "éteinte")} · luminosité {status.Brightness} %"
@@ -475,7 +394,7 @@ public partial class MainWindow : Window
 
             ScanPlaceholder.Visibility = Visibility.Collapsed;
             DevicesList.Visibility = Visibility.Visible;
-            var current = devices.FirstOrDefault(d => d.Ip == _config.DeviceIp);
+            var current = devices.FirstOrDefault(d => d.Ip == _app.Config.DeviceIp);
 
             _updatingUi = true;
             DevicesList.ItemsSource = devices;
@@ -519,25 +438,25 @@ public partial class MainWindow : Window
     {
         if (_updatingUi)
             return;
-        StartupManager.SetEnabled(StartupSwitch.IsChecked == true, _config.StartMinimized);
+        StartupManager.SetEnabled(StartupSwitch.IsChecked == true, _app.Config.StartMinimized);
     }
 
     private void MinimizedSwitch_Changed(object sender, RoutedEventArgs e)
     {
         if (_updatingUi)
             return;
-        _config.StartMinimized = MinimizedSwitch.IsChecked == true;
-        _config.Save();
+        _app.Config.StartMinimized = MinimizedSwitch.IsChecked == true;
+        _app.Config.Save();
         if (StartupSwitch.IsChecked == true)
-            StartupManager.SetEnabled(true, _config.StartMinimized);
+            StartupManager.SetEnabled(true, _app.Config.StartMinimized);
     }
 
     private void CloseToTraySwitch_Changed(object sender, RoutedEventArgs e)
     {
         if (_updatingUi)
             return;
-        _config.CloseToTray = CloseToTraySwitch.IsChecked == true;
-        _config.Save();
+        _app.Config.CloseToTray = CloseToTraySwitch.IsChecked == true;
+        _app.Config.Save();
     }
 
     private void OpenConfigFolder_Click(object sender, RoutedEventArgs e)
@@ -546,90 +465,25 @@ public partial class MainWindow : Window
         Process.Start(new ProcessStartInfo(AppConfig.ConfigDirectory) { UseShellExecute = true });
     }
 
-    // ===== Zone de notification / fermeture =====
+    // ===== Zone de notification =====
 
-    private TrayState GetTrayState() =>
-        new(StatusTitle(_status), _engine.IsPaused, _engine.BrightnessLevel, _monitors, _selectedMonitor);
+    /// <summary>La fenêtre est détruite (et sa mémoire rendue) ; l'icône la recrée à la demande.</summary>
+    private void HideButton_Click(object sender, RoutedEventArgs e) => _app.HideToTray();
 
-    private void HideButton_Click(object sender, RoutedEventArgs e) => HideToTray();
+    // ===== État de la synchronisation =====
 
-    private void HideToTray() => Hide();
-
-    private void ShowFromTray()
+    /// <summary>Reflète l'état de l'application : statut, écran, couleur en direct.</summary>
+    internal void ApplyStatus()
     {
-        Show();
-        if (WindowState == WindowState.Minimized)
-            WindowState = WindowState.Normal;
-        Activate();
-    }
-
-    private void ExitApplication()
-    {
-        _exitRequested = true;
-        Close();
-    }
-
-    private void OnWindowClosing(object? sender, CancelEventArgs e)
-    {
-        if (_config.CloseToTray && !_exitRequested)
-        {
-            e.Cancel = true;
-            HideToTray();
-        }
-    }
-
-    private void OnWindowClosed(object? sender, EventArgs e)
-    {
-        // Quitter éteint la lampe, comme la V1
-        _config.Save();
-        _engine.Stop();
-        _govee.Dispose();
-        _tray.Dispose();
-    }
-
-    // ===== Retour du moteur vers l'UI =====
-
-    private void OnEngineUpdated(EngineUpdate update)
-    {
-        // Limite le rafraîchissement UI à ~15 Hz pour ne pas charger le Dispatcher
-        var now = DateTime.UtcNow;
-        if (update.Status == EngineStatus.Active && (now - _lastUiUpdate).TotalMilliseconds < 66)
-            return;
-        _lastUiUpdate = now;
-
-        Dispatcher.BeginInvoke(() =>
-        {
-            if (update.Status == EngineStatus.Active)
-            {
-                if (_engine.IsPaused)
-                    return; // frame traitée juste avant la pause
-                _lastColor = Color.FromRgb(update.R, update.G, update.B);
-                _lastBrightness = update.Brightness;
-                _hasColor = true;
-            }
-            ApplyStatus(update.Status);
-        });
-    }
-
-    private static string StatusTitle(EngineStatus status) => status switch
-    {
-        EngineStatus.Active => "Actif",
-        EngineStatus.Paused => "En pause",
-        EngineStatus.CaptureError => "Erreur de capture",
-        EngineStatus.NoMonitor => "Aucun écran",
-        _ => "Démarrage…"
-    };
-
-    private void ApplyStatus(EngineStatus status)
-    {
-        _status = status;
-        string monitorName = _selectedMonitor?.Name ?? "Aucun écran sélectionné";
+        var status = _app.Status;
+        var color = _app.LastColor;
+        string monitorName = _app.SelectedMonitor?.Name ?? "Aucun écran sélectionné";
 
         var (brushKey, heroStatus, detail) = status switch
         {
             EngineStatus.Active => ("SuccessBrush", "Synchronisation active",
-                _hasColor ? $"#{_lastColor.R:X2}{_lastColor.G:X2}{_lastColor.B:X2}   ·   luminosité {_lastBrightness:0} %"
-                          : "En attente d'un changement à l'écran…"),
+                color is not null ? $"#{color.R:X2}{color.G:X2}{color.B:X2}   ·   luminosité {color.Brightness:0} %"
+                                  : "En attente d'un changement à l'écran…"),
             EngineStatus.Paused => ("NeutralBrush", "En pause", "La lampe est éteinte. Reprenez pour la rallumer."),
             EngineStatus.CaptureError => ("DangerBrush", "Erreur de capture", "Nouvelle tentative en cours…"),
             EngineStatus.NoMonitor => ("WarningBrush", "Aucun écran", "Choisissez un écran dans la page Écran."),
@@ -642,26 +496,31 @@ public partial class MainWindow : Window
         HeroStatusText.Text = heroStatus;
         HeroMonitorText.Text = monitorName;
         HeroDetailText.Text = detail;
-        SidebarStatusText.Text = StatusTitle(status);
+        string title = AppController.StatusTitle(status);
+        SidebarStatusText.Text = title;
         SidebarStatusDetail.Text = monitorName;
-        SidebarSwatchHost.ToolTip = $"{StatusTitle(status)} — {monitorName}";
-        _tray.SetStatus(StatusTitle(status));
+        SidebarSwatchHost.ToolTip = $"{title} — {monitorName}";
 
         // Orbe : couleur en direct quand actif, éteint sinon
-        bool live = status == EngineStatus.Active && _hasColor;
-        var color = live ? _lastColor : _idleColor;
-        _liveBrush.Color = color;
+        bool live = status == EngineStatus.Active && color is not null;
+        var display = live ? Color.FromRgb(color!.R, color.G, color.B) : _idleColor;
+        _liveBrush.Color = display;
+        if (live && _glowBrush.GradientStops[0].Color != display)
+        {
+            for (int i = 0; i < GlowProfile.Length; i++)
+                _glowBrush.GradientStops[i].Color = Color.FromArgb(GlowProfile[i].Alpha, display.R, display.G, display.B);
+        }
         OrbGlow.Opacity = live ? 0.65 : 0;
-        HeroTintStop.Color = live ? Color.FromArgb(0x38, color.R, color.G, color.B) : Colors.Transparent;
+        HeroTintStop.Color = live ? Color.FromArgb(0x38, display.R, display.G, display.B) : Colors.Transparent;
     }
 
     private void UpdateSummaryTiles()
     {
-        TileDeviceText.Text = string.IsNullOrEmpty(_config.DeviceModel)
-            ? _config.DeviceIp
-            : $"{_config.DeviceModel} · {_config.DeviceIp}";
-        TileDisplayText.Text = _selectedMonitor?.Name ?? "Aucun écran";
-        TileCaptureText.Text = (_config.CaptureFpsAuto ? "Auto" : $"{_config.CaptureFps} FPS")
-                               + (_config.SmoothTransitions ? " · lissage" : "");
+        TileDeviceText.Text = string.IsNullOrEmpty(_app.Config.DeviceModel)
+            ? _app.Config.DeviceIp
+            : $"{_app.Config.DeviceModel} · {_app.Config.DeviceIp}";
+        TileDisplayText.Text = _app.SelectedMonitor?.Name ?? "Aucun écran";
+        TileCaptureText.Text = (_app.Config.CaptureFpsAuto ? "Auto" : $"{_app.Config.CaptureFps} FPS")
+                               + (_app.Config.SmoothTransitions ? " · lissage" : "");
     }
 }

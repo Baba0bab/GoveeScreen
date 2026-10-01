@@ -93,11 +93,8 @@
                                     </Grid.ColumnDefinitions>
 
                                     <Grid Width="112" Height="112" Margin="0,0,28,0" VerticalAlignment="Center">
-                                        <Ellipse x:Name="OrbGlow" Width="100" Height="100" Opacity="0">
-                                            <Ellipse.Effect>
-                                                <BlurEffect Radius="36"/>
-                                            </Ellipse.Effect>
-                                        </Ellipse>
+                                        <!-- Halo : dégradé radial (rempli dans le code), déborde de 30 px autour de l'orbe -->
+                                        <Ellipse x:Name="OrbGlow" Width="172" Height="172" Margin="-30" Opacity="0"/>
                                         <Ellipse x:Name="Orb" Width="100" Height="100" Stroke="#26FFFFFF" StrokeThickness="1"/>
                                         <Ellipse Width="100" Height="100" IsHitTestVisible="False">
                                             <Ellipse.Fill>
@@ -306,7 +303,7 @@
 
                         <TextBlock Text="Capture" Style="{StaticResource SectionHeader}" Margin="2,16,0,8"/>
                         <ui:SettingCard Icon="&#xEC4A;" Header="Fréquence de capture"
-                                        Description="Auto : jusqu'à 60 FPS, uniquement quand l'image change. Plus bas = moins de charge GPU/CPU.">
+                                        Description="Auto : jusqu'à 30 FPS (le rythme d'envoi à la lampe), uniquement quand l'image change. Plus bas = moins de charge GPU/CPU.">
                             <Border Style="{StaticResource SegmentedHost}">
                                 <StackPanel x:Name="FpsSegments" Orientation="Horizontal">
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Fps" Tag="0"

@@ -6,10 +6,12 @@ public record EngineUpdate(EngineStatus Status, byte R, byte G, byte B, double B
 
 /// <summary>
 /// Boucle de synchronisation : capture GPU → analyse → envoi UDP Govee.
-/// En mode Auto, le traitement suit les frames du compositeur jusqu'à 60 FPS
-/// (uniquement quand l'image change) ; en mode manuel il est plafonné à TargetFps.
-/// Le plafonnement se fait par saut de frames, sans sleep : pas de jitter, et la
-/// frame traitée est toujours la plus récente.
+/// En mode Auto, le traitement suit les frames du compositeur au rythme maximal des
+/// envois (30 par seconde, uniquement quand l'image change) ; en mode manuel il est
+/// plafonné à TargetFps. Le plafonnement se fait à la source (compositeur) et par saut
+/// de frames, sans sleep : pas de jitter, et la frame traitée est toujours la plus récente.
+/// Hors frames, le thread dort sur des événements : écran statique = 2 réveils par seconde,
+/// pause = aucun (la session de capture est alors libérée).
 /// Si la capture d'écran ne voit pas un jeu en plein écran exclusif (frames noires
 /// ou plus aucune frame alors qu'une fenêtre plein écran est au premier plan),
 /// la boucle bascule automatiquement en capture de cette fenêtre, puis revient
@@ -17,17 +19,19 @@ public record EngineUpdate(EngineStatus Status, byte R, byte G, byte B, double B
 /// </summary>
 public sealed class SyncEngine : IDisposable
 {
-    private const int FrameTimeoutMs = 100;
+    private const int FullscreenCheckIntervalMs = 500;
+    private const int FrameTimeoutMs = FullscreenCheckIntervalMs;  // écran statique : juste de quoi surveiller le plein écran
     private const int MinSendIntervalMs = 33;
-    private const int AutoIntervalMs = 16;             // mode Auto : traitement à 60 FPS max
+    private const int AutoIntervalMs = MinSendIntervalMs;  // mode Auto : traiter plus vite qu'on n'envoie ne sert à rien
+    private const int ColorDeadband = 2;               // écart par canal en dessous duquel on n'envoie pas (invisible sur la lampe)
     private const double SmoothingAlpha = 0.35;        // par tranche de 33 ms (corrigé du temps réel)
     private const int FallbackAfterMs = 2000;          // bascule en capture fenêtre après 2 s sans image exploitable
-    private const int FullscreenCheckIntervalMs = 500;
 
     private readonly GoveeClient _govee;
     private Thread? _thread;
     private volatile bool _running;
     private volatile bool _paused;
+    private readonly AutoResetEvent _wake = new(false);  // réveille la boucle : pause, écran, arrêt
 
     private MonitorInfo? _monitor;
     private readonly object _monitorLock = new();
@@ -39,13 +43,13 @@ public sealed class SyncEngine : IDisposable
     private (byte r, byte g, byte b) _lastSentColor = (0, 0, 0);
     private double _lastSentBrightness = -1;
     private double _emaR, _emaG, _emaB, _emaBrightness;
-    private long _lastEmaTicks;
+    private long _lastEmaTimestamp;
     private bool _emaInitialized;
 
     public int BrightnessLevel { get; set; } = 2;
     public bool SmoothTransitions { get; set; } = true;
 
-    /// <summary>Cadence automatique (jusqu'à 60 FPS quand l'image change).</summary>
+    /// <summary>Cadence automatique (jusqu'à 30 FPS, le rythme d'envoi, quand l'image change).</summary>
     public bool AutoFps
     {
         get => _autoFps;
@@ -75,11 +79,13 @@ public sealed class SyncEngine : IDisposable
             _monitor = monitor;
             _monitorChanged = true;
         }
+        _wake.Set();
     }
 
     public void SetPaused(bool paused)
     {
         _paused = paused;
+        _wake.Set();
         if (paused)
             Updated?.Invoke(new EngineUpdate(EngineStatus.Paused, 0, 0, 0, 0, _monitor?.FriendlyName));
     }
@@ -96,6 +102,7 @@ public sealed class SyncEngine : IDisposable
     public void Stop()
     {
         _running = false;
+        _wake.Set();
         _thread?.Join(1000);
         _govee.TurnOff();
     }
@@ -105,9 +112,9 @@ public sealed class SyncEngine : IDisposable
         ScreenCapturer? capturer = null;
         byte[]? buffer = null;
         MonitorInfo? activeMonitor = null;
-        long lastSendTicks = 0;
-        long lastFrameTicks = Environment.TickCount64; // dernière frame reçue (traitée ou sautée)
-        long blackSinceTicks = -1;                     // début de la période "image entièrement noire"
+        long lastSend = 0;
+        long lastFrame = Pacing.Now;                   // dernière frame reçue (traitée ou sautée)
+        long blackSince = -1;                          // début de la période "image entièrement noire"
         long lastFullscreenCheck = 0;
         IntPtr fallbackWindow = IntPtr.Zero;           // fenêtre plein écran capturée en secours
 
@@ -115,7 +122,10 @@ public sealed class SyncEngine : IDisposable
         {
             if (_paused)
             {
-                Thread.Sleep(100);
+                // Libère la session de capture et sa VRAM, puis dort jusqu'à la reprise
+                capturer?.Dispose();
+                capturer = null;
+                _wake.WaitOne();
                 continue;
             }
 
@@ -134,7 +144,7 @@ public sealed class SyncEngine : IDisposable
                 capturer?.Dispose();
                 capturer = null;
                 Updated?.Invoke(new EngineUpdate(EngineStatus.NoMonitor, 0, 0, 0, 0, null));
-                Thread.Sleep(1000);
+                _wake.WaitOne(); // SetMonitor réveille la boucle
                 continue;
             }
 
@@ -142,11 +152,11 @@ public sealed class SyncEngine : IDisposable
                 fallbackWindow = IntPtr.Zero;
 
             // Bascule capture écran ↔ capture fenêtre plein écran
-            long now = Environment.TickCount64;
-            if (!needRecreate && now - lastFullscreenCheck >= FullscreenCheckIntervalMs)
+            if (!needRecreate && Pacing.IsDue(lastFullscreenCheck, FullscreenCheckIntervalMs))
             {
-                lastFullscreenCheck = now;
-                IntPtr fullscreen = MonitorService.GetFullscreenWindow(wanted.DeviceName);
+                lastFullscreenCheck = Pacing.Now;
+                var screen = MonitorService.GetScreenState(wanted.DeviceName);
+                IntPtr fullscreen = screen?.FullscreenWindow ?? IntPtr.Zero;
                 if (fallbackWindow != IntPtr.Zero)
                 {
                     // La fenêtre plein écran a disparu ou changé
@@ -160,14 +170,17 @@ public sealed class SyncEngine : IDisposable
                 {
                     // Une fenêtre plein écran est là mais la capture d'écran ne donne rien
                     // d'exploitable depuis 2 s (plein écran exclusif) → capturer la fenêtre
-                    bool starved = now - lastFrameTicks >= FallbackAfterMs;
-                    bool allBlack = blackSinceTicks >= 0 && now - blackSinceTicks >= FallbackAfterMs;
+                    bool starved = Pacing.ElapsedMs(lastFrame) >= FallbackAfterMs;
+                    bool allBlack = blackSince >= 0 && Pacing.ElapsedMs(blackSince) >= FallbackAfterMs;
                     if (starved || allBlack)
                     {
                         fallbackWindow = fullscreen;
                         needRecreate = true;
                     }
                 }
+
+                if (!needRecreate)
+                    ApplyCaptureRegion(capturer!, screen);
             }
 
             if (needRecreate)
@@ -176,12 +189,13 @@ public sealed class SyncEngine : IDisposable
                 capturer = null;
                 try
                 {
-                    capturer = new ScreenCapturer(wanted, fallbackWindow);
+                    capturer = new ScreenCapturer(wanted, fallbackWindow, _wake);
+                    ApplyCaptureRegion(capturer, MonitorService.GetScreenState(wanted.DeviceName));
                     buffer = new byte[capturer.SmallWidth * capturer.SmallHeight * 4];
                     activeMonitor = wanted;
                     _emaInitialized = false;
-                    lastFrameTicks = Environment.TickCount64;
-                    blackSinceTicks = -1;
+                    lastFrame = Pacing.Now;
+                    blackSince = -1;
                 }
                 catch
                 {
@@ -193,7 +207,7 @@ public sealed class SyncEngine : IDisposable
                         continue;
                     }
                     Updated?.Invoke(new EngineUpdate(EngineStatus.CaptureError, 0, 0, 0, 0, wanted.FriendlyName));
-                    Thread.Sleep(1000);
+                    _wake.WaitOne(1000);
                     lock (_monitorLock) { _monitorChanged = true; }
                     continue;
                 }
@@ -204,9 +218,9 @@ public sealed class SyncEngine : IDisposable
                 int minInterval = _autoFps ? AutoIntervalMs : 1000 / _targetFps;
                 var result = capturer!.TryCaptureFrame(FrameTimeoutMs, minInterval, buffer!);
                 if (result == CaptureResult.Timeout)
-                    continue; // Écran statique : rien à faire
+                    continue; // Écran statique ou réveil (pause, écran) : rien à faire
 
-                lastFrameTicks = Environment.TickCount64;
+                lastFrame = Pacing.Now;
                 if (result == CaptureResult.Skipped)
                     continue; // Frame ignorée pour respecter la cadence
 
@@ -215,15 +229,15 @@ public sealed class SyncEngine : IDisposable
                 // Image entièrement noire : possible jeu plein écran que la capture ne voit pas
                 if (!capturer.IsWindowCapture && color.R + color.G + color.B <= 3)
                 {
-                    if (blackSinceTicks < 0)
-                        blackSinceTicks = lastFrameTicks;
+                    if (blackSince < 0)
+                        blackSince = lastFrame;
                 }
                 else
                 {
-                    blackSinceTicks = -1;
+                    blackSince = -1;
                 }
 
-                ProcessColor(color, activeMonitor, ref lastSendTicks);
+                ProcessColor(color, activeMonitor, ref lastSend);
             }
             catch
             {
@@ -234,7 +248,7 @@ public sealed class SyncEngine : IDisposable
                 if (!wasWindowCapture)
                 {
                     Updated?.Invoke(new EngineUpdate(EngineStatus.CaptureError, 0, 0, 0, 0, activeMonitor?.FriendlyName));
-                    Thread.Sleep(500);
+                    _wake.WaitOne(500);
                 }
             }
         }
@@ -242,7 +256,14 @@ public sealed class SyncEngine : IDisposable
         capturer?.Dispose();
     }
 
-    private void ProcessColor(FrameColor color, MonitorInfo? monitor, ref long lastSendTicks)
+    /// <summary>
+    /// Hors plein écran, la barre des tâches n'entre pas dans la moyenne : seule la zone de
+    /// travail est échantillonnée. Un jeu ou une vidéo en plein écran est pris en entier.
+    /// </summary>
+    private static void ApplyCaptureRegion(ScreenCapturer capturer, (IntPtr FullscreenWindow, ScreenRegion WorkArea)? screen) =>
+        capturer.SetRegion(screen is { } s && s.FullscreenWindow == IntPtr.Zero ? s.WorkArea : null);
+
+    private void ProcessColor(FrameColor color, MonitorInfo? monitor, ref long lastSend)
     {
         double brightness = color.BrightnessPercent * BrightnessLevel switch
         {
@@ -257,7 +278,6 @@ public sealed class SyncEngine : IDisposable
         double r = color.R, g = color.G, b = color.B;
         if (SmoothTransitions)
         {
-            long nowTicks = Environment.TickCount64;
             if (!_emaInitialized)
             {
                 (_emaR, _emaG, _emaB, _emaBrightness) = (r, g, b, brightness);
@@ -266,34 +286,39 @@ public sealed class SyncEngine : IDisposable
             else
             {
                 // Alpha corrigé du temps réellement écoulé : lissage identique quelle que soit la cadence
-                double dt = Math.Clamp(nowTicks - _lastEmaTicks, 1, 500);
+                double dt = Math.Clamp(Pacing.ElapsedMs(_lastEmaTimestamp), 1, 500);
                 double alpha = 1 - Math.Pow(1 - SmoothingAlpha, dt / 33.0);
                 _emaR += alpha * (r - _emaR);
                 _emaG += alpha * (g - _emaG);
                 _emaB += alpha * (b - _emaB);
                 _emaBrightness += alpha * (brightness - _emaBrightness);
             }
-            _lastEmaTicks = nowTicks;
+            _lastEmaTimestamp = Pacing.Now;
             (r, g, b, brightness) = (_emaR, _emaG, _emaB, _emaBrightness);
         }
 
         var final = ((byte)Math.Round(r), (byte)Math.Round(g), (byte)Math.Round(b));
 
-        // Limitation de débit + envoi uniquement sur changement perceptible
-        long now = Environment.TickCount64;
-        bool colorChanged = final != _lastSentColor;
+        // Limitation de débit + envoi uniquement sur changement perceptible : les écarts
+        // de 1/255 (fin de lissage, bruit d'encodage vidéo) ne valent pas un paquet
+        bool colorChanged =
+            Math.Abs(final.Item1 - _lastSentColor.r) >= ColorDeadband ||
+            Math.Abs(final.Item2 - _lastSentColor.g) >= ColorDeadband ||
+            Math.Abs(final.Item3 - _lastSentColor.b) >= ColorDeadband;
         bool brightnessChanged = Math.Abs(brightness - _lastSentBrightness) > 1;
-        if ((colorChanged || brightnessChanged) && now - lastSendTicks >= MinSendIntervalMs)
+        if ((colorChanged || brightnessChanged) && Pacing.IsDue(lastSend, MinSendIntervalMs))
         {
             if (colorChanged)
+            {
                 _govee.SetColor(final.Item1, final.Item2, final.Item3);
+                _lastSentColor = final;   // référence = ce que la lampe affiche réellement
+            }
             if (brightnessChanged)
             {
                 _govee.SetBrightness((int)Math.Round(brightness));
                 _lastSentBrightness = brightness;
             }
-            _lastSentColor = final;
-            lastSendTicks = now;
+            lastSend = Pacing.Now;
 
             Updated?.Invoke(new EngineUpdate(EngineStatus.Active, final.Item1, final.Item2, final.Item3, brightness, monitor?.FriendlyName));
         }

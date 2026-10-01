@@ -1,0 +1,288 @@
+using System.Runtime;
+using System.Windows;
+using System.Windows.Threading;
+using GoveeScreenV2.Core;
+using GoveeScreenV2.UI;
+
+namespace GoveeScreenV2;
+
+/// <summary>
+/// Cœur de l'application, indépendant de la fenêtre : configuration, lampe, moteur de
+/// synchronisation et icône de la zone de notification. La fenêtre n'existe que lorsqu'elle
+/// est affichée : en zone de notification elle est détruite (arbre visuel, cible de rendu)
+/// puis recréée à la demande, ce qui rend sa mémoire pendant que l'application tourne seule.
+/// </summary>
+public sealed class AppController : IDisposable
+{
+    private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
+    private readonly TrayIcon _tray;
+    private MainWindow? _window;
+    private bool _closingToTray;
+    private bool _exiting;
+
+    private volatile bool _windowVisible;             // fenêtre affichée et non réduite
+    private volatile EngineUpdate? _pendingColor;     // dernière couleur reçue, affichée au retour de la fenêtre
+    private DateTime _lastUiUpdate = DateTime.MinValue;
+
+    public AppConfig Config { get; }
+    public GoveeClient Govee { get; }
+    public SyncEngine Engine { get; }
+    public List<MonitorInfo> Monitors { get; private set; } = new();
+    public MonitorInfo? SelectedMonitor { get; private set; }
+    public EngineStatus Status { get; private set; } = EngineStatus.Starting;
+
+    /// <summary>Dernière couleur affichée, null tant qu'aucune n'a été envoyée.</summary>
+    public EngineUpdate? LastColor { get; private set; }
+
+    public AppController()
+    {
+        Config = AppConfig.Load();
+        Govee = new GoveeClient(Config.DeviceIp);
+        Engine = new SyncEngine(Govee)
+        {
+            BrightnessLevel = Config.BrightnessLevel,
+            SmoothTransitions = Config.SmoothTransitions,
+            TargetFps = Config.CaptureFps,
+            AutoFps = Config.CaptureFpsAuto
+        };
+        Engine.Updated += OnEngineUpdated;
+
+        _tray = new TrayIcon(GetTrayState);
+        _tray.OpenRequested += ShowWindow;
+        _tray.PauseToggled += TogglePause;
+        _tray.BrightnessSelected += SetBrightnessLevel;
+        _tray.MonitorSelected += SelectMonitor;
+        _tray.ExitRequested += Exit;
+
+        // Fermeture de session Windows : les fenêtres se ferment sans que ce soit un retour en zone de notification
+        Application.Current.SessionEnding += (_, _) => _exiting = true;
+
+        LoadMonitors();
+        SetStatus(EngineStatus.Starting);
+    }
+
+    public void Start()
+    {
+        Govee.TurnOn();
+        Engine.Start();
+    }
+
+    // ===== Fenêtre =====
+
+    public void ShowWindow()
+    {
+        if (_window is null)
+        {
+            _window = new MainWindow(this);
+            _window.Closed += OnWindowClosed;
+        }
+        _window.Show();
+        if (_window.WindowState == WindowState.Minimized)
+            _window.WindowState = WindowState.Normal;
+        _window.Activate();
+    }
+
+    /// <summary>Ferme la fenêtre sans quitter : l'application continue dans la zone de notification.</summary>
+    public void HideToTray()
+    {
+        if (_window is null)
+            return;
+        _closingToTray = true;
+        _window.Close();
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        if (Application.Current.MainWindow == _window)
+            Application.Current.MainWindow = null;
+        _window = null;
+        _windowVisible = false;
+        bool toTray = _closingToTray || Config.CloseToTray;
+        _closingToTray = false;
+        if (_exiting)
+            return;
+        if (!toTray)
+        {
+            Exit();
+            return;
+        }
+
+        // L'arbre visuel a vécu assez longtemps pour être promu en génération 2, que le GC
+        // ne repasserait pas avant longtemps vu le peu d'allocations : on le collecte maintenant
+        _dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect();
+        });
+    }
+
+    /// <summary>La fenêtre signale qu'elle est (ou n'est plus) visible à l'écran.</summary>
+    public void SetWindowVisible(bool visible)
+    {
+        _windowVisible = visible;
+        if (visible && Status == EngineStatus.Active && !Engine.IsPaused && _pendingColor is { } update)
+        {
+            LastColor = update;
+            SetStatus(Status);
+        }
+    }
+
+    public void Exit()
+    {
+        if (_exiting)
+            return;
+        _exiting = true;
+        _window?.Close();
+        Application.Current.Shutdown();
+    }
+
+    /// <summary>Quitter éteint la lampe, comme la V1.</summary>
+    public void Dispose()
+    {
+        Config.Save();
+        Engine.Stop();
+        Govee.Dispose();
+        _tray.Dispose();
+    }
+
+    // ===== Pause, intensité =====
+
+    public void TogglePause() => SetPaused(!Engine.IsPaused);
+
+    public void SetPaused(bool paused)
+    {
+        Engine.SetPaused(paused);
+        if (paused)
+            Govee.TurnOff();
+        else
+            Govee.TurnOn();
+        _window?.SyncPauseState();
+
+        // Écran statique : le moteur n'enverra rien tant que l'image ne change pas,
+        // on repasse donc directement en "actif" avec la dernière couleur connue
+        SetStatus(paused ? EngineStatus.Paused : EngineStatus.Active);
+    }
+
+    public void SetBrightnessLevel(int level)
+    {
+        level = Math.Clamp(level, 1, 4);
+        Engine.BrightnessLevel = level;
+        Config.BrightnessLevel = level;
+        Config.Save();
+        _window?.SyncBrightnessSegments();
+    }
+
+    // ===== Écrans, capture =====
+
+    public void LoadMonitors()
+    {
+        Monitors = MonitorService.GetMonitors();
+        var selected = Monitors.FirstOrDefault(m => m.DeviceName == Config.MonitorDeviceName)
+                       ?? Monitors.FirstOrDefault();
+        ApplyMonitor(selected, save: false);
+    }
+
+    public void SelectMonitor(MonitorInfo? monitor) => ApplyMonitor(monitor, save: true);
+
+    private void ApplyMonitor(MonitorInfo? monitor, bool save)
+    {
+        SelectedMonitor = monitor;
+        Engine.SetMonitor(monitor);
+        if (save && monitor is not null)
+        {
+            Config.MonitorDeviceName = monitor.DeviceName;
+            Config.Save();
+        }
+        _window?.SyncMonitors();
+        SetStatus(Status);   // le nom de l'écran fait partie de l'état affiché
+    }
+
+    /// <summary>Fréquence de capture, 0 = Auto.</summary>
+    public void SetCaptureFps(int fps)
+    {
+        bool auto = fps == 0;
+        Engine.AutoFps = auto;
+        Config.CaptureFpsAuto = auto;
+        if (!auto)
+        {
+            Engine.TargetFps = fps;
+            Config.CaptureFps = fps;
+        }
+        Config.Save();
+    }
+
+    public void SetSmoothTransitions(bool smooth)
+    {
+        Engine.SmoothTransitions = smooth;
+        Config.SmoothTransitions = smooth;
+        Config.Save();
+    }
+
+    // ===== Lampe =====
+
+    /// <summary>Change la lampe pilotée (adresse déjà validée) ; true si l'adresse a changé.</summary>
+    public bool SetDevice(string ip, string? model)
+    {
+        bool changed = ip != Config.DeviceIp;
+        if (!changed && (model is null || model == Config.DeviceModel))
+            return false;
+
+        Config.DeviceIp = ip;
+        Config.DeviceModel = model ?? (changed ? null : Config.DeviceModel);
+        Govee.DeviceIp = ip;
+        Config.Save();
+        if (changed && !Engine.IsPaused)
+            Govee.TurnOn();
+        return changed;
+    }
+
+    // ===== Retour du moteur =====
+
+    private void OnEngineUpdated(EngineUpdate update)
+    {
+        if (update.Status == EngineStatus.Active)
+        {
+            _pendingColor = update;
+            // Pas de fenêtre visible : rien à redessiner. Seul un changement d'état passe
+            // (info-bulle et menu de l'icône) ; la couleur sera affichée au retour.
+            if (!_windowVisible && Status == EngineStatus.Active)
+                return;
+
+            // Limite le rafraîchissement UI à ~15 Hz pour ne pas charger le Dispatcher
+            var now = DateTime.UtcNow;
+            if ((now - _lastUiUpdate).TotalMilliseconds < 66)
+                return;
+            _lastUiUpdate = now;
+        }
+
+        _dispatcher.BeginInvoke(() =>
+        {
+            if (update.Status == EngineStatus.Active)
+            {
+                if (Engine.IsPaused)
+                    return; // frame traitée juste avant la pause
+                LastColor = update;
+            }
+            SetStatus(update.Status);
+        });
+    }
+
+    private void SetStatus(EngineStatus status)
+    {
+        Status = status;
+        _tray.SetStatus(StatusTitle(status));
+        _window?.ApplyStatus();
+    }
+
+    public static string StatusTitle(EngineStatus status) => status switch
+    {
+        EngineStatus.Active => "Actif",
+        EngineStatus.Paused => "En pause",
+        EngineStatus.CaptureError => "Erreur de capture",
+        EngineStatus.NoMonitor => "Aucun écran",
+        _ => "Démarrage…"
+    };
+
+    private TrayState GetTrayState() =>
+        new(StatusTitle(Status), Engine.IsPaused, Engine.BrightnessLevel, Monitors, SelectedMonitor);
+}
