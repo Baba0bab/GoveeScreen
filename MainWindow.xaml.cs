@@ -71,6 +71,8 @@ public partial class MainWindow : Window
         StartupSwitch.IsChecked = StartupManager.IsEnabled();
         MinimizedSwitch.IsChecked = _app.Config.StartMinimized;
         CloseToTraySwitch.IsChecked = _app.Config.CloseToTray;
+        PauseOnLockSwitch.IsChecked = _app.Config.PauseOnLock;
+        LampOnLockScreenSwitch.IsChecked = _app.Config.LampOnLockScreen;
         AboutCard.Description = $"Version {typeof(App).Assembly.GetName().Version?.ToString(3)} · synchronisation écran → lampe Govee";
         ResetIpHint();
         ResetConnectionHint();
@@ -456,6 +458,22 @@ public partial class MainWindow : Window
         if (_updatingUi)
             return;
         _app.Config.CloseToTray = CloseToTraySwitch.IsChecked == true;
+        _app.Config.Save();
+    }
+
+    private void PauseOnLockSwitch_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi)
+            return;
+        _app.Config.PauseOnLock = PauseOnLockSwitch.IsChecked == true;
+        _app.Config.Save();
+    }
+
+    private void LampOnLockScreenSwitch_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi)
+            return;
+        _app.Config.LampOnLockScreen = LampOnLockScreenSwitch.IsChecked == true;
         _app.Config.Save();
     }
 

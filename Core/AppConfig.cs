@@ -14,6 +14,8 @@ public class AppConfig
     public bool CaptureFpsAuto { get; set; } = true;
     public string? DeviceModel { get; set; }   // SKU renvoyé par la découverte (ex. "H6008"), affichage seulement
     public bool CloseToTray { get; set; }      // ✕ masque la fenêtre au lieu de quitter
+    public bool PauseOnLock { get; set; }      // pause au verrouillage de la session, reprise au déverrouillage
+    public bool LampOnLockScreen { get; set; } // avec PauseOnLock : lampe rallumée quand l'écran de verrouillage s'allume
 
     public static string ConfigDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GoveeScreen");

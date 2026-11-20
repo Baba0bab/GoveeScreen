@@ -16,6 +16,7 @@ public sealed class AppController : IDisposable
 {
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
     private readonly TrayIcon _tray;
+    private readonly SessionWatcher _session;
     private MainWindow? _window;
     private bool _closingToTray;
     private bool _exiting;
@@ -23,6 +24,7 @@ public sealed class AppController : IDisposable
     private volatile bool _windowVisible;             // fenêtre affichée et non réduite
     private volatile EngineUpdate? _pendingColor;     // dernière couleur reçue, affichée au retour de la fenêtre
     private DateTime _lastUiUpdate = DateTime.MinValue;
+    private bool _lockPaused;                         // pause posée par le verrouillage, levée au déverrouillage
 
     public AppConfig Config { get; }
     public GoveeClient Govee { get; }
@@ -53,6 +55,11 @@ public sealed class AppController : IDisposable
         _tray.BrightnessSelected += SetBrightnessLevel;
         _tray.MonitorSelected += SelectMonitor;
         _tray.ExitRequested += Exit;
+
+        _session = new SessionWatcher();
+        _session.Locked += OnSessionLocked;
+        _session.Unlocked += OnSessionUnlocked;
+        _session.DisplayPowerChanged += OnDisplayPowerChanged;
 
         // Fermeture de session Windows : les fenêtres se ferment sans que ce soit un retour en zone de notification
         Application.Current.SessionEnding += (_, _) => _exiting = true;
@@ -143,13 +150,21 @@ public sealed class AppController : IDisposable
         Engine.Stop();
         Govee.Dispose();
         _tray.Dispose();
+        _session.Dispose();
     }
 
     // ===== Pause, intensité =====
 
     public void TogglePause() => SetPaused(!Engine.IsPaused);
 
+    /// <summary>Pause ou reprise demandée par l'utilisateur : le déverrouillage n'y touchera pas.</summary>
     public void SetPaused(bool paused)
+    {
+        _lockPaused = false;
+        ApplyPause(paused);
+    }
+
+    private void ApplyPause(bool paused)
     {
         Engine.SetPaused(paused);
         if (paused)
@@ -170,6 +185,40 @@ public sealed class AppController : IDisposable
         Config.BrightnessLevel = level;
         Config.Save();
         _window?.SyncBrightnessSegments();
+    }
+
+    // ===== Verrouillage de la session =====
+
+    private void OnSessionLocked()
+    {
+        // Déjà en pause (pause manuelle) : le déverrouillage ne la lèvera pas
+        if (!Config.PauseOnLock || Engine.IsPaused)
+            return;
+        _lockPaused = true;
+        ApplyPause(true);
+    }
+
+    private void OnSessionUnlocked()
+    {
+        if (!_lockPaused)
+            return;
+        _lockPaused = false;
+        ApplyPause(false);
+    }
+
+    /// <summary>
+    /// Écran de verrouillage : la lampe se rallume (sur sa dernière couleur) dès que l'écran se
+    /// rallume pour demander le mot de passe, et s'éteint s'il se remet en veille. La capture ne
+    /// reprend qu'au déverrouillage : d'ici là, le bureau n'est pas affiché.
+    /// </summary>
+    private void OnDisplayPowerChanged(bool on)
+    {
+        if (!_lockPaused || !Config.LampOnLockScreen)
+            return;
+        if (on)
+            Govee.TurnOn();
+        else
+            Govee.TurnOff();
     }
 
     // ===== Écrans, capture =====

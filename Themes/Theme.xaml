@@ -127,7 +127,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock x:Name="icon" Style="{StaticResource Icon}" FontSize="18"
                                        Text="{TemplateBinding Icon}" Margin="2,0,18,0"/>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                            <StackPanel x:Name="text" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
                                 <TextBlock Text="{TemplateBinding Header}" FontSize="14" TextWrapping="Wrap"/>
                                 <TextBlock x:Name="description" Text="{TemplateBinding Description}"
                                            Style="{StaticResource Caption}" Margin="0,2,0,0"/>
@@ -141,6 +141,11 @@
                         </Trigger>
                         <Trigger Property="Description" Value="{x:Null}">
                             <Setter TargetName="description" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <!-- Le contrôle (Content) gère son propre état désactivé -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="icon" Property="Opacity" Value="0.45"/>
+                            <Setter TargetName="text" Property="Opacity" Value="0.45"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

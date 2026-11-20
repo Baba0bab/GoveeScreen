@@ -38,6 +38,7 @@ dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile
 - [AppController.cs](AppController.cs) — cœur de l'application (config, lampe, moteur, icône) ; crée la fenêtre à l'ouverture et la détruit en zone de notification
 - [MainWindow.xaml](MainWindow.xaml) — fenêtre (simple vue de l'état) : menu latéral + pages Accueil / Lampe / Écran / Paramètres
 - [Themes/Theme.xaml](Themes/Theme.xaml) — palette et styles (cartes, interrupteurs, contrôles segmentés, menu)
+- [Core/SessionWatcher.cs](Core/SessionWatcher.cs) — verrouillage / déverrouillage de la session (WTS) et allumage de l'écran (`GUID_CONSOLE_DISPLAY_STATE`), en Win32 pur
 - [UI/TrayIcon.cs](UI/TrayIcon.cs) — icône de la zone de notification et son menu natif sombre (pause, intensité, écran), en Win32 pur : ni WinForms ni moteur de rendu WPF chargés pour l'icône
 
 ## Interface
@@ -45,7 +46,7 @@ dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile
 - **Accueil** : couleur envoyée à la lampe en direct, pause / reprise, intensité, raccourcis vers les autres pages
 - **Lampe** : adresse IP, test de connexion (`devStatus`), détection automatique des lampes du réseau
 - **Écran** : choix de l'écran source, fréquence de capture, lissage
-- **Paramètres** : démarrage avec Windows, démarrage masqué, fermeture dans la zone de notification
+- **Paramètres** : démarrage avec Windows, démarrage masqué, pause au verrouillage de la session (reprise au déverrouillage, ou lampe rallumée dès que l'écran de verrouillage se rallume), fermeture dans la zone de notification
 - Menu replié en rail d'icônes (☰, automatique sous 760 px de large) ; état de la synchro toujours visible en bas du menu
 - Zone de notification : clic gauche = ouvrir, clic droit = actions rapides sans ouvrir la fenêtre. Masquée, la fenêtre est détruite ; au démarrage masqué (lancement avec Windows) elle n'est jamais créée : ~70 Mo de mémoire privée au lieu de ~165 Mo
 - Raccourcis : `Ctrl+1` … `Ctrl+4` pour changer de page, `Ctrl+P` pour pause / reprise

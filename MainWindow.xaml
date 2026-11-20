@@ -329,7 +329,7 @@
                     <!-- ========== Paramètres ========== -->
                     <StackPanel x:Name="SettingsPage" Visibility="Collapsed">
                         <TextBlock Text="Paramètres" Style="{StaticResource PageTitle}"/>
-                        <TextBlock Text="Comportement de l'application au démarrage et à la fermeture."
+                        <TextBlock Text="Comportement de l'application au démarrage, au verrouillage et à la fermeture."
                                    Style="{StaticResource PageSubtitle}"/>
 
                         <TextBlock Text="Démarrage" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
@@ -342,6 +342,20 @@
                                         Description="S'ouvre directement dans la zone de notification, sans afficher la fenêtre.">
                             <CheckBox x:Name="MinimizedSwitch" Style="{StaticResource Switch}"
                                       Checked="MinimizedSwitch_Changed" Unchecked="MinimizedSwitch_Changed"/>
+                        </ui:SettingCard>
+
+                        <TextBlock Text="Verrouillage" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard Icon="&#xE72E;" Header="Pause au verrouillage"
+                                        Description="Éteint la lampe quand vous verrouillez l'ordinateur et reprend la synchronisation au déverrouillage. Une pause manuelle reste en place.">
+                            <CheckBox x:Name="PauseOnLockSwitch" Style="{StaticResource Switch}"
+                                      Checked="PauseOnLockSwitch_Changed" Unchecked="PauseOnLockSwitch_Changed"/>
+                        </ui:SettingCard>
+                        <!-- Sous-option : alignée sur le texte de la carte parente, active seulement avec elle -->
+                        <ui:SettingCard Header="Rallumer avant le déverrouillage" Margin="38,0,0,4"
+                                        IsEnabled="{Binding IsChecked, ElementName=PauseOnLockSwitch}"
+                                        Description="Dès que l'écran se rallume pour demander le mot de passe, la lampe se rallume sur sa dernière couleur ; elle s'éteint si l'écran se remet en veille. La synchronisation reprend au déverrouillage.">
+                            <CheckBox x:Name="LampOnLockScreenSwitch" Style="{StaticResource Switch}"
+                                      Checked="LampOnLockScreenSwitch_Changed" Unchecked="LampOnLockScreenSwitch_Changed"/>
                         </ui:SettingCard>
 
                         <TextBlock Text="Fenêtre" Style="{StaticResource SectionHeader}"/>
