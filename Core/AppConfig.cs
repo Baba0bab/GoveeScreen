@@ -5,6 +5,8 @@ namespace GoveeScreenV2.Core;
 
 public class AppConfig
 {
+    private static readonly JsonSerializerOptions SaveOptions = new() { WriteIndented = true };
+
     public string DeviceIp { get; set; } = "192.168.1.175";
     public string? MonitorDeviceName { get; set; }
     public int BrightnessLevel { get; set; } = 2; // 1=50%, 2=100%, 3=200%, 4=Max
@@ -54,7 +56,7 @@ public class AppConfig
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(this, SaveOptions));
         }
         catch
         {

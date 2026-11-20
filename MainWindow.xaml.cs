@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -221,11 +222,11 @@ public partial class MainWindow : Window
     {
         if (_updatingUi || sender is not RadioButton { Tag: string tag })
             return;
-        _app.SetBrightnessLevel(int.Parse(tag));
+        _app.SetBrightnessLevel(int.Parse(tag, CultureInfo.InvariantCulture));
     }
 
     internal void SyncBrightnessSegments() =>
-        CheckSegment(BrightnessSegments, _app.Config.BrightnessLevel.ToString());
+        CheckSegment(BrightnessSegments, _app.Config.BrightnessLevel.ToString(CultureInfo.InvariantCulture));
 
     private void CheckSegment(Panel segments, string tag)
     {
@@ -273,12 +274,12 @@ public partial class MainWindow : Window
     {
         if (_updatingUi || sender is not RadioButton { Tag: string tag })
             return;
-        _app.SetCaptureFps(int.Parse(tag)); // 0 = Auto
+        _app.SetCaptureFps(int.Parse(tag, CultureInfo.InvariantCulture)); // 0 = Auto
         UpdateSummaryTiles();
     }
 
     private void SyncFpsSegments() =>
-        CheckSegment(FpsSegments, _app.Config.CaptureFpsAuto ? "0" : _app.Config.CaptureFps.ToString());
+        CheckSegment(FpsSegments, _app.Config.CaptureFpsAuto ? "0" : _app.Config.CaptureFps.ToString(CultureInfo.InvariantCulture));
 
     private void SmoothSwitch_Changed(object sender, RoutedEventArgs e)
     {

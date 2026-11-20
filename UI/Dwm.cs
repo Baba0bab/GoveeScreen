@@ -18,7 +18,7 @@ internal static class Dwm
     public static void SetAttribute(IntPtr hwnd, int attribute, int value)
     {
         if (hwnd != IntPtr.Zero)
-            DwmSetWindowAttribute(hwnd, attribute, ref value, sizeof(int));
+            _ = DwmSetWindowAttribute(hwnd, attribute, ref value, sizeof(int));
     }
 
     /// <summary>Couleur au format COLORREF (0x00BBGGRR) attendu par DWM.</summary>

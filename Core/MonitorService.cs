@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text;
 using Vortice.DXGI;
 
 namespace GoveeScreenV2.Core;
@@ -301,7 +300,7 @@ public static class MonitorService
     private static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+    private static extern int GetClassName(IntPtr hWnd, [Out] char[] lpClassName, int nMaxCount);
 
     private const uint MONITOR_DEFAULTTONEAREST = 2;
 
@@ -364,9 +363,9 @@ public static class MonitorService
             return IntPtr.Zero;
 
         // Exclut le bureau lui-même (fond d'écran plein écran)
-        var className = new StringBuilder(64);
-        GetClassName(hwnd, className, className.Capacity);
-        if (className.ToString() is "Progman" or "WorkerW")
+        var className = new char[64];
+        int length = GetClassName(hwnd, className, className.Length);
+        if (className.AsSpan(0, Math.Max(length, 0)) is "Progman" or "WorkerW")
             return IntPtr.Zero;
 
         return hwnd;
