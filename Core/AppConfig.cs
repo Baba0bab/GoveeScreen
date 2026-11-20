@@ -7,7 +7,7 @@ public class AppConfig
 {
     private static readonly JsonSerializerOptions SaveOptions = new() { WriteIndented = true };
 
-    public string DeviceIp { get; set; } = "192.168.1.175";
+    public string DeviceIp { get; set; } = "";   // vide au premier lancement : à choisir via la détection automatique
     public string? MonitorDeviceName { get; set; }
     public int BrightnessLevel { get; set; } = 2; // 1=50%, 2=100%, 3=200%, 4=Max
     public bool StartMinimized { get; set; }
@@ -19,7 +19,14 @@ public class AppConfig
     public bool PauseOnLock { get; set; }      // pause au verrouillage de la session, reprise au déverrouillage
     public bool LampOnLockScreen { get; set; } // avec PauseOnLock : lampe rallumée quand l'écran de verrouillage s'allume
 
-    public static string ConfigDirectory => Path.Combine(
+    /// <summary>
+    /// Dossier de données distinct (développement, captures d'écran) : la config réelle
+    /// n'est pas touchée et une seconde instance peut tourner à côté de la copie installée.
+    /// </summary>
+    public static string? HomeOverride { get; } =
+        Environment.GetEnvironmentVariable("GOVEESCREEN_HOME") is { Length: > 0 } home ? Path.GetFullPath(home) : null;
+
+    public static string ConfigDirectory => HomeOverride ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GoveeScreen");
 
     private static string ConfigPath => Path.Combine(ConfigDirectory, "config.json");
@@ -32,6 +39,8 @@ public class AppConfig
                 return JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath)) ?? new AppConfig();
 
             // Migration depuis la config V1 (~/govee_config.json)
+            if (HomeOverride is not null)
+                return new AppConfig();
             string v1Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "govee_config.json");
             if (File.Exists(v1Path))
             {

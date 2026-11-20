@@ -18,6 +18,12 @@ public partial class MainWindow : Window
 {
     private const double NavExpandedWidth = 240;
     private const double NavCompactWidth = 56;
+
+    /// <summary>Version complète, suffixe de pré-version compris (2.1.0-beta.1).</summary>
+    private static string AppVersion =>
+        typeof(App).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion
+        ?? typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?";
     private const double NavAutoCompactBelow = 760;   // largeur de fenêtre sous laquelle le menu se replie
 
     // Halo de l'orbe : profil d'opacité mesuré d'un disque de 100 px flouté (rayon 36), en
@@ -74,7 +80,7 @@ public partial class MainWindow : Window
         CloseToTraySwitch.IsChecked = _app.Config.CloseToTray;
         PauseOnLockSwitch.IsChecked = _app.Config.PauseOnLock;
         LampOnLockScreenSwitch.IsChecked = _app.Config.LampOnLockScreen;
-        AboutCard.Description = $"Version {typeof(App).Assembly.GetName().Version?.ToString(3)} · synchronisation écran → lampe Govee";
+        AboutCard.Description = $"Version {AppVersion} · synchronisation écran → lampe Govee";
         ResetIpHint();
         ResetConnectionHint();
         SyncBrightnessSegments();
@@ -535,7 +541,9 @@ public partial class MainWindow : Window
 
     private void UpdateSummaryTiles()
     {
-        TileDeviceText.Text = string.IsNullOrEmpty(_app.Config.DeviceModel)
+        TileDeviceText.Text = string.IsNullOrEmpty(_app.Config.DeviceIp)
+            ? "Aucune lampe"
+            : string.IsNullOrEmpty(_app.Config.DeviceModel)
             ? _app.Config.DeviceIp
             : $"{_app.Config.DeviceModel} · {_app.Config.DeviceIp}";
         TileDisplayText.Text = _app.SelectedMonitor?.Name ?? "Aucun écran";

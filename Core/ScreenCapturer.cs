@@ -65,7 +65,7 @@ public sealed class ScreenCapturer : IDisposable
 
     // ===== Shader de réduction =====
 
-    private const string DownscaleShader = """
+    internal const string DownscaleShader = """
         // Triangle couvrant toute la cible, sans vertex buffer
         float4 VS(uint id : SV_VertexID) : SV_Position
         {

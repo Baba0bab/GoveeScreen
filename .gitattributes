@@ -1,0 +1,21 @@
+# Line ending normalization: LF in the repository, CRLF on checkout on Windows
+* text=auto
+
+*.cs      text diff=csharp
+*.xaml    text
+*.csproj  text
+*.slnx    text
+*.json    text
+*.md      text
+*.yml     text
+*.html    text
+*.js      text
+*.css     text
+*.ps1     text eol=crlf
+*.sh      text eol=lf
+
+# Binaries
+*.ico     binary
+*.png     binary
+*.jpg     binary
+*.gif     binary

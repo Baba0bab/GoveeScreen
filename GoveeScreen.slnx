@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/GoveeScreen.Tests.csproj" />
+  </Folder>
+  <Project Path="GoveeScreen.csproj" />
+</Solution>
