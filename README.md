@@ -23,7 +23,7 @@
 
 GoveeScreen reads the dominant color of your screen and sends it to a Govee light over your local network, so the light in your room follows what you watch or play. It talks to the lamp directly through Govee's **LAN API**: no cloud, no account, no API key.
 
-![Home page](docs/screenshots/home.png)
+![Home page](docs/screenshots/en/home.png)
 
 ## Features
 
@@ -45,7 +45,7 @@ GoveeScreen reads the dominant color of your screen and sends it to a Govee ligh
 
 | Lamp | Display | Settings |
 |---|---|---|
-| ![Lamp](docs/screenshots/lamp.png) | ![Display](docs/screenshots/display.png) | ![Settings](docs/screenshots/settings.png) |
+| ![Lamp](docs/screenshots/en/lamp.png) | ![Display](docs/screenshots/en/screen.png) | ![Settings](docs/screenshots/en/settings.png) |
 
 ## Requirements
 

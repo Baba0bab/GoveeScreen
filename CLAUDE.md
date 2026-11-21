@@ -67,7 +67,7 @@ Same system as VibeSSHMonitoring.
 - **Interface**: start a copy with `GOVEESCREEN_HOME`, then `tools/ui-test/Invoke-UiElement.ps1 -ProcessId <pid>`
   (click by name, `-AutomationId x -Value y`, `-List`) and `tools/ui-test/Capture-Window.ps1 -ProcessId <pid> -Out shot.png`.
   Always pass `-ProcessId`: without it the scripts pick the user's copy. Desktop screenshots (computer use) hide the
-  user's other windows: use these scripts. README screenshots live in `docs/screenshots/`.
+  user's other windows: use these scripts. README screenshots live in `docs/screenshots/en/` (README.md) and `docs/screenshots/fr/` (README.fr.md).
 - A dev copy with a lamp IP really sends UDP packets to that address: use an empty IP or an address with no device.
 - **Updates** (tested end to end on 2026-11-21, without installing anything): `pack.ps1` two versions into the same
   scratch folder (delta), extract the first one's `GoveeScreen-win-Portable.zip`, start its root `GoveeScreen.exe`

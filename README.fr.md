@@ -23,7 +23,7 @@
 
 GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Govee sur votre réseau local : la lumière de la pièce suit ce que vous regardez ou ce à quoi vous jouez. L'application parle directement à la lampe via l'**API LAN** de Govee : pas de cloud, pas de compte, pas de clé d'API.
 
-![Page d'accueil](docs/screenshots/home.png)
+![Page d'accueil](docs/screenshots/fr/home.png)
 
 ## Fonctionnalités
 
@@ -45,7 +45,7 @@ GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Go
 
 | Lampe | Écran | Paramètres |
 |---|---|---|
-| ![Lampe](docs/screenshots/lamp.png) | ![Écran](docs/screenshots/display.png) | ![Paramètres](docs/screenshots/settings.png) |
+| ![Lampe](docs/screenshots/fr/lamp.png) | ![Écran](docs/screenshots/fr/screen.png) | ![Paramètres](docs/screenshots/fr/settings.png) |
 
 ## Prérequis
 
