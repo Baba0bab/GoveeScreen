@@ -25,6 +25,9 @@ public static class Program
             .SetAutoApplyOnStartup(config.AppUpdateAutoInstall)
             .Run();
 
+        // Langue avant toute fenêtre : l'interface (et le thème) lisent leurs textes à leur construction
+        Loc.Initialize(config.Language);
+
         var app = new App();
         app.InitializeComponent();
         app.Run();

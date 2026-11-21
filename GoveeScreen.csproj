@@ -28,7 +28,7 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <!-- Tas de quelques Mo : pas besoin du thread de GC en arrière-plan -->
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
-    <SatelliteResourceLanguages>en;fr</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en;fr;de;es</SatelliteResourceLanguages>
     <!-- Publication : ni documentation XML des paquets ni .pdb séparé (symboles intégrés à l'exe) -->
     <PublishDocumentationFiles>false</PublishDocumentationFiles>
     <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
@@ -56,6 +56,11 @@
     <Compile Remove="Tests\**;artifacts\**" />
     <None Remove="Tests\**;artifacts\**" />
     <Page Remove="Tests\**;artifacts\**" />
+  </ItemGroup>
+
+  <!-- Traductions de l'interface, lues par Core/Loc.cs -->
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\*.json" LogicalName="GoveeScreenV2.Localization.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Licences livrées avec l'application -->

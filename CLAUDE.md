@@ -5,7 +5,7 @@ screen. Display name and identifier **GoveeScreen** (exe, package id), namespace
 `GoveeScreen.csproj`, repository https://github.com/Baba0bab/GoveeScreen, license GPL-3.0-or-later. Sister project:
 VibeSSHMonitoring (`C:\serveurs\sshvibemonitoring`), same workflows, packaging and theme.
 
-Languages: the **interface is in French only** (hard-coded texts) and code comments are in French. GitHub texts,
+Languages: the **interface is translated** (English, French, German, Spanish, see *Localization* below) and code comments are in French. GitHub texts,
 commit messages and CHANGELOG / release notes are **in English**. The public documentation is **bilingual**
 (README.md English + README.fr.md, CONTRIBUTING, SECURITY and docs/RELEASING.md with an English then a French section).
 
@@ -35,14 +35,28 @@ config, own single-instance mutex). Set the variable only in the process that st
   12 h by `AppController`; installed on exit, or on *Redémarrer et mettre à jour* (settings, sidebar, tray menu).
 - `Core/`: no WPF. `ScreenCapturer.cs` (Windows.Graphics.Capture + D3D11, HLSL downscale shader), `FrameAnalyzer.cs`,
   `SyncEngine.cs`, `GoveeClient.cs` (UDP 4003 commands, 4001 / 4002 discovery), `MonitorService.cs`, `SessionWatcher.cs`,
-  `StartupManager.cs` (HKCU Run), `AppConfig.cs`.
-- `AppController.cs` (lifecycle, tray, engine), `MainWindow.xaml` (pages), `UI/TrayIcon.cs` (Win32 tray and menu).
+  `StartupManager.cs` (HKCU Run), `AppConfig.cs`, `Loc.cs` (translations).
+- `AppController.cs` (lifecycle, tray, engine, `Restart()`), `MainWindow.xaml` (pages), `UI/TrayIcon.cs` (Win32 tray and menu).
+- `Localization/*.json`: interface texts, flat `"Area.Key": "text"` with `{0}` placeholders, embedded in the exe.
 - `Themes/Theme.xaml`: shared with VibeSSHMonitoring.
 - `scripts/pack.ps1`: packaging. `tools/ui-test/`: UI automation and window capture.
 
+## Localization
+
+Same system as VibeSSHMonitoring.
+
+- Never hard-code interface text: `Loc.T("Area.Key")` / `Loc.T("Area.Key", args)` in C#, `{ui:Tr Area.Key}` in XAML
+  (`UI/TrayIcon.cs` too). `Program.cs` calls `Loc.Initialize` before WPF starts.
+- Add every new key to **all** files of `Localization/` (`en.json` is the reference and the fallback). `LocalizationTests`
+  fails if a language misses a key or a placeholder, or has a different number of `|` separators (`|…|` = highlighted
+  part, see `Device.LanHint`).
+- Texts are read when an element is built: a language change needs a restart (`AppController.Restart()`, which starts
+  the exe with `--wait-for <pid>`).
+- A new language: copy `en.json`, translate it, add it to `Loc.Languages` and a flag to `UI/Flags.cs`.
+
 ## Invariants that must never change
 
-- config folder `%APPDATA%\GoveeScreen` and the setting names in `config.json`;
+- config folder `%APPDATA%\GoveeScreen`, the setting names in `config.json` and the `Language` codes (`"system"`, `"fr"`…);
 - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value name `GoveeScreen`;
 - `%LOCALAPPDATA%\GoveeScreen` belongs to the installer (Velopack): write nothing there;
 - package id `GoveeScreen`, channel `win`, repository URL, release file names;
@@ -60,6 +74,7 @@ config, own single-instance mutex). Set the variable only in the process that st
   (a launcher: the app runs from `current\`) with `GOVEESCREEN_HOME` and `GOVEESCREEN_UPDATE_SOURCE=<packages folder>`
   set; the automatic check runs after 20 s, then *Redémarrer et mettre à jour*. The portable copy updates in place.
   Against GitHub, the legacy `1.0.0` Python release (no Velopack assets) is skipped: the check reports up to date.
+- Element names depend on the interface language: set `"Language": "en"` in the test `config.json` for stable names.
 - UI Automation does not expose `SettingCard` descriptions: read them from a capture. Scroll a page with the
   `ScrollPattern` of `PageScroller` (`SetScrollPercent`).
 - **Lamp, GPU, games**: anything about the real lamp, capture performance or full-screen games must be validated by

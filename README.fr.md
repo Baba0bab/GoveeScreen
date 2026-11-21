@@ -19,6 +19,8 @@
   <a href="README.md">🇬🇧 English</a> · 🇫🇷 Français
 </p>
 
+> L'interface est disponible en **anglais, français, allemand et espagnol**. Elle suit par défaut la langue d'affichage de Windows ; changez-la dans *Paramètres → Général → Langue*.
+
 GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Govee sur votre réseau local : la lumière de la pièce suit ce que vous regardez ou ce à quoi vous jouez. L'application parle directement à la lampe via l'**API LAN** de Govee : pas de cloud, pas de compte, pas de clé d'API.
 
 ![Page d'accueil](docs/screenshots/home.png)
@@ -37,6 +39,7 @@ GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Go
 - **Zone de notification** : pause, intensité et écran depuis le menu de l'icône, sans ouvrir la fenêtre. Masquée, la fenêtre est détruite et l'application occupe environ 70 Mo.
 - **Démarrage avec Windows**, éventuellement masqué.
 - **Mises à jour automatiques** depuis les Releases GitHub : petits téléchargements delta, installés à la fermeture de l'application.
+- **Langues** : anglais, français, allemand et espagnol, selon la langue d'affichage de Windows par défaut.
 - Raccourcis : `Ctrl+1` … `Ctrl+4` pour changer de page, `Ctrl+P` pour pause / reprise.
 
 | Lampe | Écran | Paramètres |
@@ -116,7 +119,7 @@ GoveeScreen 2 est une réécriture complète en C# / .NET 10 + WPF de l'applicat
 
 ## Contribuer
 
-Signalements de bugs, idées et pull requests sont les bienvenus, voir [CONTRIBUTING.md](CONTRIBUTING.md).
+Signalements de bugs, idées, traductions et pull requests sont les bienvenus, voir [CONTRIBUTING.md](CONTRIBUTING.md). Pour ajouter une langue, copiez `Localization/en.json` en `<code>.json`, traduisez les valeurs et ajoutez la langue à `Loc.Languages` dans `Core/Loc.cs`.
 
 ## Licence
 

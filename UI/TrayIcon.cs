@@ -18,8 +18,8 @@ public record TrayState(string Status, bool IsPaused, int BrightnessLevel,
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
-    public static readonly (int Level, string Label)[] BrightnessLevels =
-        { (1, "50 %"), (2, "100 %"), (3, "200 %"), (4, "Max") };
+    /// <summary>Niveaux d'intensité du sous-menu (1 = 50 %, 4 = Max).</summary>
+    private static readonly int[] BrightnessLevels = { 1, 2, 3, 4 };
 
     // ===== Interop : icône, fenêtre de messages, menu =====
 
@@ -320,24 +320,25 @@ public sealed class TrayIcon : IDisposable
         {
             AppendMenu(menu, MF_STRING | MF_GRAYED, IntPtr.Zero, $"GoveeScreen · {state.Status}");
             AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
-            AppendMenu(menu, MF_STRING, CmdOpen, "Ouvrir GoveeScreen");
-            AppendMenu(menu, MF_STRING, CmdPause, state.IsPaused ? "Reprendre la synchronisation" : "Mettre en pause");
+            AppendMenu(menu, MF_STRING, CmdOpen, Loc.T("Tray.Open"));
+            AppendMenu(menu, MF_STRING, CmdPause, Loc.T(state.IsPaused ? "Tray.Resume" : "Pause.Pause"));
 
             IntPtr brightness = CreatePopupMenu();
-            foreach (var (level, label) in BrightnessLevels)
-                AppendMenu(brightness, MF_STRING | (level == state.BrightnessLevel ? MF_CHECKED : 0), CmdBrightness + level, label);
-            AppendMenu(menu, MF_POPUP, brightness, "Intensité");
+            foreach (int level in BrightnessLevels)
+                AppendMenu(brightness, MF_STRING | (level == state.BrightnessLevel ? MF_CHECKED : 0), CmdBrightness + level,
+                    Loc.T($"Brightness.Level{level}"));
+            AppendMenu(menu, MF_POPUP, brightness, Loc.T("Home.Intensity"));
 
             IntPtr monitors = CreatePopupMenu();
             for (int i = 0; i < state.Monitors.Count; i++)
                 AppendMenu(monitors, MF_STRING | (state.Monitors[i] == state.SelectedMonitor ? MF_CHECKED : 0),
                     CmdMonitor + i, state.Monitors[i].FriendlyName);
-            AppendMenu(menu, MF_POPUP | (state.Monitors.Count == 0 ? MF_GRAYED : 0), monitors, "Écran");
+            AppendMenu(menu, MF_POPUP | (state.Monitors.Count == 0 ? MF_GRAYED : 0), monitors, Loc.T("Nav.Display"));
 
             AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
             if (state.UpdateVersion is not null)
-                AppendMenu(menu, MF_STRING, CmdUpdate, $"Redémarrer et mettre à jour ({state.UpdateVersion})");
-            AppendMenu(menu, MF_STRING, CmdExit, "Quitter");
+                AppendMenu(menu, MF_STRING, CmdUpdate, Loc.T("Tray.RestartUpdate", state.UpdateVersion));
+            AppendMenu(menu, MF_STRING, CmdExit, Loc.T("Tray.Exit"));
             SetMenuDefaultItem(menu, CmdOpen, 0);   // en gras, comme le clic gauche
 
             // Premier plan pendant le menu, sinon il ne se ferme pas quand on clique ailleurs ;

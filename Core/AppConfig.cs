@@ -21,6 +21,8 @@ public class AppConfig
     public bool AppUpdateCheck { get; set; } = true;         // recherche au démarrage puis toutes les 12 h
     public bool AppUpdateAutoInstall { get; set; } = true;   // installation à la fermeture (ou au démarrage suivant)
     public bool AppUpdatePrerelease { get; set; }            // inclure les préversions (bêta)
+    /// <summary>Langue de l'interface : "system" (langue d'affichage de Windows) ou un code de <see cref="Loc.Languages"/>.</summary>
+    public string Language { get; set; } = Loc.SystemLanguage;
 
     /// <summary>
     /// Dossier de données distinct (développement, captures d'écran) : la config réelle

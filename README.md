@@ -19,7 +19,7 @@
   🇬🇧 English · <a href="README.fr.md">🇫🇷 Français</a>
 </p>
 
-> The interface is currently in **French only**. The documentation is available in English and French.
+> The interface is available in **English, French, German and Spanish**. It follows the Windows display language by default; change it in *Settings → General → Language*.
 
 GoveeScreen reads the dominant color of your screen and sends it to a Govee light over your local network, so the light in your room follows what you watch or play. It talks to the lamp directly through Govee's **LAN API**: no cloud, no account, no API key.
 
@@ -39,6 +39,7 @@ GoveeScreen reads the dominant color of your screen and sends it to a Govee ligh
 - **System tray**: pause, intensity and display from the tray menu without opening the window. Hidden, the window is destroyed and the app uses about 70 MB.
 - **Start with Windows**, optionally hidden in the tray.
 - **Automatic updates** from GitHub Releases: small delta downloads, installed when you close the app.
+- **Languages**: English, French, German and Spanish, following the Windows display language by default.
 - Keyboard shortcuts: `Ctrl+1` … `Ctrl+4` to switch pages, `Ctrl+P` to pause / resume.
 
 | Lamp | Display | Settings |
@@ -67,7 +68,7 @@ GoveeScreen reads the dominant color of your screen and sends it to a Govee ligh
 
 ### Updates
 
-The app checks GitHub Releases at startup and then every 12 hours, downloads new versions in the background (usually only a small *delta*) and installs them **when you close the app**, or right away with **Redémarrer et mettre à jour** (*Restart and update*: in *Paramètres → Mises à jour*, in the side menu or in the tray icon's menu). You can turn off automatic checks or automatic installation, and opt in to pre-releases, in the same settings section.
+The app checks GitHub Releases at startup and then every 12 hours, downloads new versions in the background (usually only a small *delta*) and installs them **when you close the app**, or right away with **Restart and update** (in *Settings → Updates*, in the side menu or in the tray icon's menu). You can turn off automatic checks or automatic installation, and opt in to pre-releases, in the same settings section.
 
 ### Uninstalling
 
@@ -76,8 +77,8 @@ The app checks GitHub Releases at startup and then every 12 hours, downloads new
 ## Getting started
 
 1. In the Govee Home app, turn on **LAN Control** for your lamp.
-2. In GoveeScreen, open **Lampe** (Lamp) and click **Rechercher** (Search): pick your lamp in the list, or type its IP address and press Enter. **Tester** (Test) checks that it answers.
-3. On **Écran** (Display), choose the monitor the lamp should follow.
+2. In GoveeScreen, open **Lamp** and click **Search**: pick your lamp in the list, or type its IP address and press Enter. **Test** checks that it answers.
+3. On **Display**, choose the monitor the lamp should follow.
 4. That's it: the lamp follows your screen. Close the window, GoveeScreen keeps running in the notification area (left click: open, right click: quick actions).
 
 Tip: give the lamp a fixed IP address (DHCP reservation in your router), otherwise it may change after a reboot of the router.
@@ -86,7 +87,7 @@ Tip: give the lamp a fixed IP address (DHCP reservation in your router), otherwi
 
 - Your screen never leaves your PC: each frame is reduced to a small thumbnail in memory, and only one color is sent to the lamp.
 - Lamp traffic stays on your local network: UDP commands to the lamp (port 4003) and the discovery multicast (239.255.255.250, ports 4001 / 4002). No account, no telemetry.
-- The only internet connection is to GitHub, to check for app updates; it can be turned off in *Paramètres → Mises à jour*.
+- The only internet connection is to GitHub, to check for app updates; it can be turned off in *Settings → Updates*.
 - Settings are stored in `%APPDATA%\GoveeScreen\config.json`.
 
 ## Building from source
@@ -123,8 +124,10 @@ Releases are published by GitHub Actions when a version tag is pushed, see [docs
 │  ├─ GoveeClient.cs      Govee LAN protocol (UDP 4003 commands, 4001 / 4002 discovery)
 │  ├─ MonitorService.cs   DXGI enumeration and monitor model names
 │  ├─ AppUpdater.cs       app updates from GitHub Releases (Velopack)
+│  ├─ Loc.cs             translations (Localization/*.json, English fallback)
 │  └─ SessionWatcher.cs   session lock / unlock and display power (Win32)
 ├─ UI/                    tray icon and its native menu (Win32), shared controls
+├─ Localization/         interface texts: en.json (reference), fr.json, de.json, es.json
 ├─ Themes/Theme.xaml      colors and control styles
 ├─ AppController.cs       app lifecycle: config, lamp, engine, tray, window
 ├─ MainWindow.xaml        Home, Lamp, Display and Settings pages
@@ -138,7 +141,7 @@ GoveeScreen 2 is a complete rewrite in C# / .NET 10 + WPF of the original Python
 
 ## Contributing
 
-Bug reports, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Bug reports, ideas, translations and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). To add a language, copy `Localization/en.json` to `<code>.json`, translate the values and add the language to `Loc.Languages` in `Core/Loc.cs`.
 
 ## License
 

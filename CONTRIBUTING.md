@@ -8,7 +8,7 @@ Thanks for your interest! Bug reports, feature ideas and pull requests are welco
 
 ### Reporting a bug
 
-Open an [issue](https://github.com/Baba0bab/GoveeScreen/issues/new/choose) with the app version (*Paramètres → À propos*), your Windows version, the lamp model, your display setup (resolution, refresh rate, HDR, number of monitors), what was on screen (desktop, video, game in full screen…) and the steps to reproduce. Issues can be written in English or French. Security issues: do **not** open a public issue, see [SECURITY.md](SECURITY.md).
+Open an [issue](https://github.com/Baba0bab/GoveeScreen/issues/new/choose) with the app version (*Settings → About*), your Windows version, the lamp model, your display setup (resolution, refresh rate, HDR, number of monitors), what was on screen (desktop, video, game in full screen…) and the steps to reproduce. Issues can be written in English or French. Security issues: do **not** open a public issue, see [SECURITY.md](SECURITY.md).
 
 ### Development setup
 
@@ -21,7 +21,7 @@ Open an [issue](https://github.com/Baba0bab/GoveeScreen/issues/new/choose) with 
 
 - One topic per pull request, branched from `main`; describe what changed and how you tested it.
 - Follow the existing style (see [`.editorconfig`](.editorconfig)): file-scoped namespaces, `_camelCase` private fields.
-- The interface is in French for now: write new interface texts in French.
+- Never hard-code interface text: add a key to [`Localization/en.json`](Localization/en.json) (the reference) **and** to every other language file, then use `Loc.T("Area.Key")` in C# or `{ui:Tr Area.Key}` in XAML. A test checks that all languages have the same keys and placeholders. If you can't translate a text, copy the English one: native speakers can fix it later.
 - Keep `Core/` free of WPF dependencies; add or update tests in `Tests/` for code that can run without a GPU or a lamp.
 - `dotnet build` must produce **no warnings**, and `dotnet test Tests` must pass (the CI checks both).
 - Add a line to the *Unreleased* section of [CHANGELOG.md](CHANGELOG.md), in English.
@@ -47,7 +47,7 @@ Ouvrez une [issue](https://github.com/Baba0bab/GoveeScreen/issues/new/choose) en
 
 - Un sujet par pull request, à partir de `main` ; décrivez le changement et comment vous l'avez testé.
 - Suivez le style existant (voir [`.editorconfig`](.editorconfig)) : namespaces de fichier, champs privés `_camelCase`.
-- L'interface est en français pour l'instant : rédigez les nouveaux textes d'interface en français.
+- N'écrivez jamais de texte d'interface en dur : ajoutez une clé dans [`Localization/en.json`](Localization/en.json) (la référence) **et** dans tous les autres fichiers de langue, puis utilisez `Loc.T("Zone.Cle")` en C# ou `{ui:Tr Zone.Cle}` en XAML. Un test vérifie que toutes les langues ont les mêmes clés et les mêmes paramètres. Si vous ne savez pas traduire un texte, recopiez l'anglais : des locuteurs natifs pourront le corriger.
 - Gardez `Core/` sans dépendance à WPF ; ajoutez ou mettez à jour les tests dans `Tests/` pour le code qui peut tourner sans GPU ni lampe.
 - `dotnet build` ne doit produire **aucun avertissement** et `dotnet test Tests` doit réussir (la CI vérifie les deux).
 - Ajoutez une ligne dans la section *Unreleased* de [CHANGELOG.md](CHANGELOG.md), en anglais.

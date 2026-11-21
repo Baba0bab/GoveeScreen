@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime;
 using System.Windows;
 using System.Windows.Threading;
@@ -167,6 +168,23 @@ public sealed class AppController : IDisposable
         Application.Current.Shutdown();
     }
 
+    /// <summary>
+    /// Redémarre l'application (pour appliquer un changement de langue). La nouvelle instance
+    /// attend la fin de celle-ci avant de prendre le relais.
+    /// </summary>
+    public void Restart()
+    {
+        string? exe = Environment.ProcessPath;
+        if (exe is null)
+            return;
+        Process.Start(new ProcessStartInfo(exe)
+        {
+            UseShellExecute = false,
+            ArgumentList = { App.WaitForArgument, Environment.ProcessId.ToString() }
+        })?.Dispose();
+        Exit();
+    }
+
     // ===== Mises à jour de l'application =====
 
     /// <summary>Installe la mise à jour téléchargée, puis relance l'application.</summary>
@@ -196,10 +214,8 @@ public sealed class AppController : IDisposable
         if (Updater.State != AppUpdateState.Ready || _appUpdateNotified)
             return;
         _appUpdateNotified = true;
-        _tray.ShowNotification($"GoveeScreen {Updater.AvailableVersion} est prête",
-            Config.AppUpdateAutoInstall
-                ? "Elle sera installée à la fermeture de l'application, ou tout de suite depuis le menu de l'icône."
-                : "Installez-la depuis le menu de l'icône ou les paramètres (Redémarrer et mettre à jour).");
+        _tray.ShowNotification(Loc.T("AppUpdate.NotifyTitle", Updater.AvailableVersion),
+            Loc.T(Config.AppUpdateAutoInstall ? "AppUpdate.NotifyAuto" : "AppUpdate.NotifyManual"));
     }
 
     /// <summary>Quitter éteint la lampe, comme la V1.</summary>
@@ -382,14 +398,14 @@ public sealed class AppController : IDisposable
         _window?.ApplyStatus();
     }
 
-    public static string StatusTitle(EngineStatus status) => status switch
+    public static string StatusTitle(EngineStatus status) => Loc.T(status switch
     {
-        EngineStatus.Active => "Actif",
-        EngineStatus.Paused => "En pause",
-        EngineStatus.CaptureError => "Erreur de capture",
-        EngineStatus.NoMonitor => "Aucun écran",
-        _ => "Démarrage…"
-    };
+        EngineStatus.Active => "Status.Active",
+        EngineStatus.Paused => "Status.Paused",
+        EngineStatus.CaptureError => "Status.CaptureError",
+        EngineStatus.NoMonitor => "Status.NoMonitor",
+        _ => "Status.Starting"
+    });
 
     private TrayState GetTrayState() =>
         new(StatusTitle(Status), Engine.IsPaused, Engine.BrightnessLevel, Monitors, SelectedMonitor,

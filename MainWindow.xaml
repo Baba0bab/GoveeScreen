@@ -24,7 +24,7 @@
 
                 <Button x:Name="NavToggleButton" DockPanel.Dock="Top" Style="{StaticResource IconButton}"
                         Content="&#xE700;" HorizontalAlignment="Left" Margin="0,0,0,8"
-                        ToolTip="Réduire ou développer le menu" Click="NavToggleButton_Click"/>
+                        ToolTip="{ui:Tr Nav.Toggle}" Click="NavToggleButton_Click"/>
 
                 <!-- Pied : état de la synchronisation, visible depuis toutes les pages -->
                 <Border DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="0,12,0,0"
@@ -37,19 +37,19 @@
                                      Stroke="{StaticResource BaseBrush}" StrokeThickness="2"/>
                         </Grid>
                         <StackPanel Margin="48,0,44,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="SidebarStatusText" Text="Démarrage…" FontSize="13"
+                            <TextBlock x:Name="SidebarStatusText" Text="{ui:Tr Status.Starting}" FontSize="13"
                                        FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                             <TextBlock x:Name="SidebarStatusDetail" FontSize="12" Margin="0,1,0,0"
                                        Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                         <Button x:Name="SidebarPauseButton" Style="{StaticResource IconButton}" Width="36"
                                 HorizontalAlignment="Right" Content="&#xE769;"
-                                ToolTip="Mettre en pause (Ctrl+P)" Click="PauseButton_Click"/>
+                                Click="PauseButton_Click"/>
                     </Grid>
                 </Border>
 
                 <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom" Style="{StaticResource NavItem}"
-                             Tag="&#xE713;" Content="Paramètres" ToolTip="Paramètres (Ctrl+4)" Checked="Nav_Checked"/>
+                             Tag="&#xE713;" Content="{ui:Tr Nav.Settings}" Checked="Nav_Checked"/>
 
                 <!-- Mise à jour téléchargée : redémarrer pour l'installer (au-dessus de Paramètres) -->
                 <Button x:Name="SidebarUpdateButton" DockPanel.Dock="Bottom" Style="{StaticResource SidebarAction}"
@@ -57,11 +57,11 @@
 
                 <StackPanel>
                     <RadioButton x:Name="NavHome" Style="{StaticResource NavItem}"
-                                 Tag="&#xE80F;" Content="Accueil" ToolTip="Accueil (Ctrl+1)" Checked="Nav_Checked"/>
+                                 Tag="&#xE80F;" Content="{ui:Tr Nav.Home}" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavDevice" Style="{StaticResource NavItem}"
-                                 Tag="&#xEA80;" Content="Lampe" ToolTip="Lampe (Ctrl+2)" Checked="Nav_Checked"/>
+                                 Tag="&#xEA80;" Content="{ui:Tr Nav.Device}" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavDisplay" Style="{StaticResource NavItem}"
-                                 Tag="&#xE7F4;" Content="Écran" ToolTip="Écran (Ctrl+3)" Checked="Nav_Checked"/>
+                                 Tag="&#xE7F4;" Content="{ui:Tr Nav.Display}" Checked="Nav_Checked"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -74,8 +74,8 @@
 
                     <!-- ========== Accueil ========== -->
                     <StackPanel x:Name="HomePage">
-                        <TextBlock Text="Accueil" Style="{StaticResource PageTitle}"/>
-                        <TextBlock Text="La lampe reproduit en direct la couleur dominante de votre écran."
+                        <TextBlock Text="{ui:Tr Nav.Home}" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="{ui:Tr Home.Subtitle}"
                                    Style="{StaticResource PageSubtitle}"/>
 
                         <!-- Carte principale : couleur en direct + pause -->
@@ -114,7 +114,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Ellipse x:Name="HeroStatusDot" Width="8" Height="8" Margin="0,0,8,0"
                                                      VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="HeroStatusText" Text="Démarrage…" FontSize="13"
+                                            <TextBlock x:Name="HeroStatusText" Text="{ui:Tr Status.Starting}" FontSize="13"
                                                        Foreground="{StaticResource TextSecondaryBrush}"/>
                                         </StackPanel>
                                         <TextBlock x:Name="HeroMonitorText" Text="—" FontFamily="{StaticResource DisplayFont}"
@@ -124,11 +124,11 @@
                                                    Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
                                         <WrapPanel Margin="0,18,0,-8">
                                             <Button x:Name="PauseButton" Style="{StaticResource AccentButton}"
-                                                    Tag="&#xE769;" Content="Mettre en pause" MinWidth="160" Margin="0,0,8,8"
-                                                    ToolTip="Éteint la lampe et suspend la capture (Ctrl+P)"
+                                                    Tag="&#xE769;" Content="{ui:Tr Pause.Pause}" MinWidth="160" Margin="0,0,8,8"
+                                                    ToolTip="{ui:Tr Pause.Tooltip}"
                                                     Click="PauseButton_Click"/>
-                                            <Button Tag="&#xE921;" Content="Masquer" Margin="0,0,8,8"
-                                                    ToolTip="Réduire dans la zone de notification — la synchronisation continue"
+                                            <Button Tag="&#xE921;" Content="{ui:Tr Home.Hide}" Margin="0,0,8,8"
+                                                    ToolTip="{ui:Tr Home.HideTooltip}"
                                                     Click="HideButton_Click"/>
                                         </WrapPanel>
                                     </StackPanel>
@@ -136,32 +136,32 @@
                             </Grid>
                         </Border>
 
-                        <TextBlock Text="Rendu" Style="{StaticResource SectionHeader}"/>
-                        <ui:SettingCard Icon="&#xE706;" Header="Intensité"
-                                        Description="Multiplie la luminosité captée à l'écran.">
+                        <TextBlock Text="{ui:Tr Home.Rendering}" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard Icon="&#xE706;" Header="{ui:Tr Home.Intensity}"
+                                        Description="{ui:Tr Home.IntensityDesc}">
                             <Border Style="{StaticResource SegmentedHost}">
                                 <StackPanel x:Name="BrightnessSegments" Orientation="Horizontal">
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Brightness" Tag="1"
-                                                 Content="50 %" Checked="BrightnessSegment_Checked"/>
+                                                 Content="{ui:Tr Brightness.Level1}" Checked="BrightnessSegment_Checked"/>
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Brightness" Tag="2"
-                                                 Content="100 %" Checked="BrightnessSegment_Checked"/>
+                                                 Content="{ui:Tr Brightness.Level2}" Checked="BrightnessSegment_Checked"/>
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Brightness" Tag="3"
-                                                 Content="200 %" Checked="BrightnessSegment_Checked"/>
+                                                 Content="{ui:Tr Brightness.Level3}" Checked="BrightnessSegment_Checked"/>
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Brightness" Tag="4"
-                                                 Content="Max" Checked="BrightnessSegment_Checked"/>
+                                                 Content="{ui:Tr Brightness.Level4}" Checked="BrightnessSegment_Checked"/>
                                 </StackPanel>
                             </Border>
                         </ui:SettingCard>
 
-                        <TextBlock Text="Configuration" Style="{StaticResource SectionHeader}"/>
+                        <TextBlock Text="{ui:Tr Home.Configuration}" Style="{StaticResource SectionHeader}"/>
                         <UniformGrid x:Name="SummaryTiles" Columns="3" Margin="0,0,-8,-8">
                             <Button Style="{StaticResource TileButton}" Margin="0,0,8,8" Tag="1"
-                                    ToolTip="Changer de lampe" Click="Tile_Click">
+                                    ToolTip="{ui:Tr Home.TileDeviceTooltip}" Click="Tile_Click">
                                 <Grid>
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xEA80;" FontSize="18"
                                                VerticalAlignment="Top" Margin="0,2,0,0"/>
                                     <StackPanel Margin="32,0,16,0">
-                                        <TextBlock Text="Lampe" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Nav.Device}" Style="{StaticResource Caption}"/>
                                         <TextBlock x:Name="TileDeviceText" FontWeight="SemiBold" Margin="0,2,0,0"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
@@ -170,12 +170,12 @@
                                 </Grid>
                             </Button>
                             <Button Style="{StaticResource TileButton}" Margin="0,0,8,8" Tag="2"
-                                    ToolTip="Changer d'écran" Click="Tile_Click">
+                                    ToolTip="{ui:Tr Home.TileDisplayTooltip}" Click="Tile_Click">
                                 <Grid>
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" FontSize="18"
                                                VerticalAlignment="Top" Margin="0,2,0,0"/>
                                     <StackPanel Margin="32,0,16,0">
-                                        <TextBlock Text="Écran" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Nav.Display}" Style="{StaticResource Caption}"/>
                                         <TextBlock x:Name="TileDisplayText" FontWeight="SemiBold" Margin="0,2,0,0"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
@@ -184,12 +184,12 @@
                                 </Grid>
                             </Button>
                             <Button Style="{StaticResource TileButton}" Margin="0,0,8,8" Tag="2"
-                                    ToolTip="Réglages de capture" Click="Tile_Click">
+                                    ToolTip="{ui:Tr Home.TileCaptureTooltip}" Click="Tile_Click">
                                 <Grid>
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xEC4A;" FontSize="18"
                                                VerticalAlignment="Top" Margin="0,2,0,0"/>
                                     <StackPanel Margin="32,0,16,0">
-                                        <TextBlock Text="Capture" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="{ui:Tr Display.Capture}" Style="{StaticResource Caption}"/>
                                         <TextBlock x:Name="TileCaptureText" FontWeight="SemiBold" Margin="0,2,0,0"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
@@ -202,28 +202,28 @@
 
                     <!-- ========== Lampe ========== -->
                     <StackPanel x:Name="DevicePage" Visibility="Collapsed">
-                        <TextBlock Text="Lampe" Style="{StaticResource PageTitle}"/>
-                        <TextBlock Text="Lampe Govee pilotée sur le réseau local (API LAN)."
+                        <TextBlock Text="{ui:Tr Nav.Device}" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="{ui:Tr Device.Subtitle}"
                                    Style="{StaticResource PageSubtitle}"/>
 
-                        <TextBlock Text="Appareil actuel" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
-                        <ui:SettingCard x:Name="IpCard" Icon="&#xE968;" Header="Adresse IP">
+                        <TextBlock Text="{ui:Tr Device.Current}" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
+                        <ui:SettingCard x:Name="IpCard" Icon="&#xE968;" Header="{ui:Tr Device.Ip}">
                             <TextBox x:Name="IpTextBox" Width="170"
                                      LostFocus="IpTextBox_LostFocus" KeyDown="IpTextBox_KeyDown"/>
                         </ui:SettingCard>
-                        <ui:SettingCard x:Name="ConnectionCard" Icon="&#xE701;" Header="Connexion">
+                        <ui:SettingCard x:Name="ConnectionCard" Icon="&#xE701;" Header="{ui:Tr Device.Connection}">
                             <StackPanel Orientation="Horizontal">
                                 <Control x:Name="TestSpinner" Style="{StaticResource Spinner}"
                                          Margin="0,0,12,0" Visibility="Collapsed"/>
                                 <TextBlock x:Name="TestResultIcon" Style="{StaticResource Icon}" FontSize="14"
                                            Margin="0,0,12,0" Visibility="Collapsed"/>
-                                <Button x:Name="TestButton" Content="Tester" MinWidth="90" Click="TestButton_Click"/>
+                                <Button x:Name="TestButton" Content="{ui:Tr Device.Test}" MinWidth="90" Click="TestButton_Click"/>
                             </StackPanel>
                         </ui:SettingCard>
 
                         <Grid>
-                            <TextBlock Text="Lampes détectées" Style="{StaticResource SectionHeader}"/>
-                            <Button x:Name="ScanButton" Tag="&#xE721;" Content="Rechercher"
+                            <TextBlock Text="{ui:Tr Device.Detected}" Style="{StaticResource SectionHeader}"/>
+                            <Button x:Name="ScanButton" Tag="&#xE721;" Content="{ui:Tr Device.Scan}"
                                     HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,8"
                                     Click="ScanButton_Click"/>
                         </Grid>
@@ -233,7 +233,7 @@
                                          Margin="0,0,12,0" Visibility="Collapsed"/>
                                 <TextBlock x:Name="ScanStatus" Style="{StaticResource Caption}" FontSize="13"
                                            VerticalAlignment="Center"
-                                           Text="Lancez une recherche pour trouver les lampes Govee de votre réseau."/>
+                                           Text="{ui:Tr Device.ScanPrompt}"/>
                             </StackPanel>
                         </Border>
                         <ListBox x:Name="DevicesList" Style="{StaticResource CardList}" Visibility="Collapsed"
@@ -256,25 +256,23 @@
                             <Grid>
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE946;" Foreground="{StaticResource AccentLightBrush}"
                                            VerticalAlignment="Top" Margin="0,1,0,0"/>
-                                <TextBlock Style="{StaticResource Caption}" FontSize="13" Margin="30,0,0,0">
-                                    Le <Run Foreground="{StaticResource TextBrush}">contrôle LAN</Run> doit être activé pour la lampe dans l'app
-                                    Govee Home (paramètres de l'appareil → LAN Control), et le PC doit être sur le même réseau.
-                                </TextBlock>
+                                <!-- Rempli dans le code : la partie entre | de Device.LanHint est mise en avant -->
+                                <TextBlock x:Name="LanHintText" Style="{StaticResource Caption}" FontSize="13" Margin="30,0,0,0"/>
                             </Grid>
                         </Border>
                     </StackPanel>
 
                     <!-- ========== Écran ========== -->
                     <StackPanel x:Name="DisplayPage" Visibility="Collapsed">
-                        <TextBlock Text="Écran" Style="{StaticResource PageTitle}"/>
-                        <TextBlock Text="Choisissez l'écran reproduit par la lampe et réglez la capture."
+                        <TextBlock Text="{ui:Tr Nav.Display}" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="{ui:Tr Display.Subtitle}"
                                    Style="{StaticResource PageSubtitle}"/>
 
                         <Grid>
-                            <TextBlock Text="Écran source" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
-                            <Button Tag="&#xE72C;" Content="Actualiser" HorizontalAlignment="Right"
+                            <TextBlock Text="{ui:Tr Display.Source}" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
+                            <Button Tag="&#xE72C;" Content="{ui:Tr Display.Refresh}" HorizontalAlignment="Right"
                                     VerticalAlignment="Bottom" Margin="0,0,0,8"
-                                    ToolTip="Rafraîchir la liste des écrans" Click="RefreshMonitors_Click"/>
+                                    ToolTip="{ui:Tr Display.RefreshTooltip}" Click="RefreshMonitors_Click"/>
                         </Grid>
                         <ListBox x:Name="MonitorsList" Style="{StaticResource CardList}"
                                  SelectionChanged="MonitorsList_SelectionChanged">
@@ -288,7 +286,7 @@
                                             <TextBlock Text="{Binding Resolution}" Style="{StaticResource Caption}"
                                                        VerticalAlignment="Center"/>
                                             <Border x:Name="PrimaryBadge" Style="{StaticResource Badge}" Margin="8,0,0,0">
-                                                <TextBlock Text="Principal" FontSize="11" Foreground="{StaticResource AccentLightBrush}"/>
+                                                <TextBlock Text="{ui:Tr Display.Primary}" FontSize="11" Foreground="{StaticResource AccentLightBrush}"/>
                                             </Border>
                                         </StackPanel>
                                     </StackPanel>
@@ -302,16 +300,16 @@
                         </ListBox>
                         <Border x:Name="NoMonitorPlaceholder" Style="{StaticResource Card}" Visibility="Collapsed">
                             <TextBlock Style="{StaticResource Caption}" FontSize="13"
-                                       Text="Aucun écran détecté. Branchez un écran puis cliquez sur Actualiser."/>
+                                       Text="{ui:Tr Display.None}"/>
                         </Border>
 
-                        <TextBlock Text="Capture" Style="{StaticResource SectionHeader}" Margin="2,16,0,8"/>
-                        <ui:SettingCard Icon="&#xEC4A;" Header="Fréquence de capture"
-                                        Description="Auto : jusqu'à 30 FPS (le rythme d'envoi à la lampe), uniquement quand l'image change. Plus bas = moins de charge GPU/CPU.">
+                        <TextBlock Text="{ui:Tr Display.Capture}" Style="{StaticResource SectionHeader}" Margin="2,16,0,8"/>
+                        <ui:SettingCard Icon="&#xEC4A;" Header="{ui:Tr Display.Fps}"
+                                        Description="{ui:Tr Display.FpsDesc}">
                             <Border Style="{StaticResource SegmentedHost}">
                                 <StackPanel x:Name="FpsSegments" Orientation="Horizontal">
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Fps" Tag="0"
-                                                 Content="Auto" Checked="FpsSegment_Checked"/>
+                                                 Content="{ui:Tr Display.Auto}" Checked="FpsSegment_Checked"/>
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Fps" Tag="10"
                                                  Content="10" MinWidth="40" Checked="FpsSegment_Checked"/>
                                     <RadioButton Style="{StaticResource Segment}" GroupName="Fps" Tag="15"
@@ -323,8 +321,8 @@
                                 </StackPanel>
                             </Border>
                         </ui:SettingCard>
-                        <ui:SettingCard Icon="&#xE790;" Header="Lissage des transitions"
-                                        Description="Adoucit les changements de couleur de la lampe.">
+                        <ui:SettingCard Icon="&#xE790;" Header="{ui:Tr Display.Smooth}"
+                                        Description="{ui:Tr Display.SmoothDesc}">
                             <CheckBox x:Name="SmoothSwitch" Style="{StaticResource Switch}"
                                       Checked="SmoothSwitch_Changed" Unchecked="SmoothSwitch_Changed"/>
                         </ui:SettingCard>
@@ -332,52 +330,74 @@
 
                     <!-- ========== Paramètres ========== -->
                     <StackPanel x:Name="SettingsPage" Visibility="Collapsed">
-                        <TextBlock Text="Paramètres" Style="{StaticResource PageTitle}"/>
-                        <TextBlock Text="Comportement de l'application au démarrage, au verrouillage et à la fermeture."
+                        <TextBlock Text="{ui:Tr Nav.Settings}" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="{ui:Tr Settings.Subtitle}"
                                    Style="{StaticResource PageSubtitle}"/>
 
-                        <TextBlock Text="Démarrage" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
-                        <ui:SettingCard Icon="&#xE7E8;" Header="Démarrer avec Windows"
-                                        Description="Lance GoveeScreen à l'ouverture de votre session.">
+                        <TextBlock Text="{ui:Tr Settings.General}" Style="{StaticResource SectionHeader}" Margin="2,0,0,8"/>
+                        <ui:SettingCard Icon="&#xE774;" Header="{ui:Tr Settings.Language}"
+                                        Description="{ui:Tr Settings.LanguageDesc}">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Visible seulement si la langue choisie diffère de celle affichée -->
+                                <Button x:Name="LanguageRestartButton" Style="{StaticResource AccentButton}" Tag="&#xE72C;"
+                                        Content="{ui:Tr Settings.LanguageRestart}" Margin="0,0,12,0" Visibility="Collapsed"
+                                        Click="LanguageRestart_Click"/>
+                                <ComboBox x:Name="LanguageCombo" Width="230" SelectionChanged="LanguageCombo_SelectionChanged">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="{Binding Flag}" Width="20" Height="15" Margin="0,0,10,0"
+                                                       VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </ui:SettingCard>
+
+                        <TextBlock Text="{ui:Tr Settings.Startup}" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard Icon="&#xE7E8;" Header="{ui:Tr Settings.StartWithWindows}"
+                                        Description="{ui:Tr Settings.StartWithWindowsDesc}">
                             <CheckBox x:Name="StartupSwitch" Style="{StaticResource Switch}"
                                       Checked="StartupSwitch_Changed" Unchecked="StartupSwitch_Changed"/>
                         </ui:SettingCard>
-                        <ui:SettingCard Icon="&#xE73F;" Header="Démarrer masqué"
-                                        Description="S'ouvre directement dans la zone de notification, sans afficher la fenêtre.">
+                        <ui:SettingCard Icon="&#xE73F;" Header="{ui:Tr Settings.StartHidden}"
+                                        Description="{ui:Tr Settings.StartHiddenDesc}">
                             <CheckBox x:Name="MinimizedSwitch" Style="{StaticResource Switch}"
                                       Checked="MinimizedSwitch_Changed" Unchecked="MinimizedSwitch_Changed"/>
                         </ui:SettingCard>
 
-                        <TextBlock Text="Verrouillage" Style="{StaticResource SectionHeader}"/>
-                        <ui:SettingCard Icon="&#xE72E;" Header="Pause au verrouillage"
-                                        Description="Éteint la lampe quand vous verrouillez l'ordinateur et reprend la synchronisation au déverrouillage. Une pause manuelle reste en place.">
+                        <TextBlock Text="{ui:Tr Settings.Lock}" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard Icon="&#xE72E;" Header="{ui:Tr Settings.PauseOnLock}"
+                                        Description="{ui:Tr Settings.PauseOnLockDesc}">
                             <CheckBox x:Name="PauseOnLockSwitch" Style="{StaticResource Switch}"
                                       Checked="PauseOnLockSwitch_Changed" Unchecked="PauseOnLockSwitch_Changed"/>
                         </ui:SettingCard>
                         <!-- Sous-option : alignée sur le texte de la carte parente, active seulement avec elle -->
-                        <ui:SettingCard Header="Rallumer avant le déverrouillage" Margin="38,0,0,4"
+                        <ui:SettingCard Header="{ui:Tr Settings.LampOnLockScreen}" Margin="38,0,0,4"
                                         IsEnabled="{Binding IsChecked, ElementName=PauseOnLockSwitch}"
-                                        Description="Dès que l'écran se rallume pour demander le mot de passe, la lampe se rallume sur sa dernière couleur ; elle s'éteint si l'écran se remet en veille. La synchronisation reprend au déverrouillage.">
+                                        Description="{ui:Tr Settings.LampOnLockScreenDesc}">
                             <CheckBox x:Name="LampOnLockScreenSwitch" Style="{StaticResource Switch}"
                                       Checked="LampOnLockScreenSwitch_Changed" Unchecked="LampOnLockScreenSwitch_Changed"/>
                         </ui:SettingCard>
 
-                        <TextBlock Text="Fenêtre" Style="{StaticResource SectionHeader}"/>
-                        <ui:SettingCard Icon="&#xE711;" Header="Fermer dans la zone de notification"
-                                        Description="Le bouton ✕ masque la fenêtre au lieu de quitter : la lampe reste synchronisée. Pour quitter, utilisez le menu de l'icône.">
+                        <TextBlock Text="{ui:Tr Settings.Window}" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard Icon="&#xE711;" Header="{ui:Tr Settings.CloseToTray}"
+                                        Description="{ui:Tr Settings.CloseToTrayDesc}">
                             <CheckBox x:Name="CloseToTraySwitch" Style="{StaticResource Switch}"
                                       Checked="CloseToTraySwitch_Changed" Unchecked="CloseToTraySwitch_Changed"/>
                         </ui:SettingCard>
 
-                        <TextBlock Text="Mises à jour" Style="{StaticResource SectionHeader}"/>
-                        <ui:SettingCard x:Name="AppUpdateCard" Icon="&#xE777;" Header="Mises à jour de l'application">
+                        <TextBlock Text="{ui:Tr Settings.Updates}" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard x:Name="AppUpdateCard" Icon="&#xE777;" Header="{ui:Tr Settings.AppUpdates}">
                             <StackPanel Orientation="Horizontal">
                                 <Control x:Name="AppUpdateSpinner" Style="{StaticResource Spinner}" Margin="0,0,12,0"
                                          Visibility="Collapsed"/>
-                                <Button x:Name="AppUpdateCheckButton" Tag="&#xE72C;" Content="Rechercher"
+                                <Button x:Name="AppUpdateCheckButton" Tag="&#xE72C;" Content="{ui:Tr Settings.UpdateCheck}"
                                         Click="AppUpdateCheck_Click"/>
                                 <Button x:Name="AppUpdateInstallButton" Style="{StaticResource AccentButton}" Tag="&#xE777;"
-                                        Content="Redémarrer et mettre à jour" Visibility="Collapsed"
+                                        Content="{ui:Tr AppUpdate.RestartInstall}" Visibility="Collapsed"
                                         Click="AppUpdateInstall_Click"/>
                             </StackPanel>
                         </ui:SettingCard>
@@ -389,28 +409,28 @@
                                            TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
-                        <ui:SettingCard x:Name="AppUpdateAutoCheckCard" Icon="&#xE895;" Header="Rechercher automatiquement"
-                                        Description="Au démarrage puis toutes les 12 h, sur les Releases GitHub du projet. La nouvelle version est téléchargée en arrière-plan.">
+                        <ui:SettingCard x:Name="AppUpdateAutoCheckCard" Icon="&#xE895;" Header="{ui:Tr Settings.AutoCheck}"
+                                        Description="{ui:Tr Settings.AutoCheckDesc}">
                             <CheckBox x:Name="AppUpdateCheckSwitch" Style="{StaticResource Switch}"
                                       Checked="AppUpdateCheckSwitch_Changed" Unchecked="AppUpdateCheckSwitch_Changed"/>
                         </ui:SettingCard>
-                        <ui:SettingCard x:Name="AppUpdateAutoInstallCard" Icon="&#xE896;" Header="Installer automatiquement"
-                                        Description="Une version téléchargée s'installe à la fermeture de l'application (ou au démarrage suivant). Sinon, utilisez « Redémarrer et mettre à jour ».">
+                        <ui:SettingCard x:Name="AppUpdateAutoInstallCard" Icon="&#xE896;" Header="{ui:Tr Settings.AutoInstall}"
+                                        Description="{ui:Tr Settings.AutoInstallDesc}">
                             <CheckBox x:Name="AppUpdateAutoInstallSwitch" Style="{StaticResource Switch}"
                                       Checked="AppUpdateAutoInstallSwitch_Changed" Unchecked="AppUpdateAutoInstallSwitch_Changed"/>
                         </ui:SettingCard>
-                        <ui:SettingCard x:Name="AppUpdatePrereleaseCard" Icon="&#xE9D9;" Header="Inclure les préversions"
-                                        Description="Reçoit aussi les versions bêta, pour tester les nouveautés en avance (moins stables).">
+                        <ui:SettingCard x:Name="AppUpdatePrereleaseCard" Icon="&#xE9D9;" Header="{ui:Tr Settings.Prerelease}"
+                                        Description="{ui:Tr Settings.PrereleaseDesc}">
                             <CheckBox x:Name="AppUpdatePrereleaseSwitch" Style="{StaticResource Switch}"
                                       Checked="AppUpdatePrereleaseSwitch_Changed" Unchecked="AppUpdatePrereleaseSwitch_Changed"/>
                         </ui:SettingCard>
 
-                        <TextBlock Text="À propos" Style="{StaticResource SectionHeader}"/>
+                        <TextBlock Text="{ui:Tr Settings.About}" Style="{StaticResource SectionHeader}"/>
                         <ui:SettingCard x:Name="AboutCard" Icon="&#xE946;" Header="GoveeScreen">
-                            <Button Tag="&#xE8B7;" Content="Dossier de configuration" Click="OpenConfigFolder_Click"/>
+                            <Button Tag="&#xE8B7;" Content="{ui:Tr Settings.ConfigFolder}" Click="OpenConfigFolder_Click"/>
                         </ui:SettingCard>
-                        <ui:SettingCard Icon="&#xE765;" Header="Raccourcis clavier"
-                                        Description="Ctrl+1 à Ctrl+4 : changer de page   ·   Ctrl+P : pause / reprise"/>
+                        <ui:SettingCard Icon="&#xE765;" Header="{ui:Tr Settings.Shortcuts}"
+                                        Description="{ui:Tr Settings.ShortcutsDesc}"/>
                     </StackPanel>
 
                 </Grid>

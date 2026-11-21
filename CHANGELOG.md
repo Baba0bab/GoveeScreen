@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- The interface is now available in English, French, German and Spanish. It follows the Windows display language by default (English when Windows uses another language); pick a language in *Settings → General → Language*, then restart the app from the button that appears.
+
 ## [2.0.0] - 2026-11-21
 
 First public release of GoveeScreen 2, a complete rewrite in C# / .NET 10 + WPF of the original Python app (kept on the `v1-python` branch).

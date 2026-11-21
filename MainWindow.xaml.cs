@@ -61,6 +61,10 @@ public partial class MainWindow : Window
 
         _navItems = new[] { NavHome, NavDevice, NavDisplay, NavSettings };
         _pages = new FrameworkElement[] { HomePage, DevicePage, DisplayPage, SettingsPage };
+        for (int i = 0; i < _navItems.Length; i++)
+            _navItems[i].ToolTip = Loc.T("Common.Shortcut", _navItems[i].Content, i + 1);
+        SetHighlightedText(LanHintText, Loc.T("Device.LanHint"));
+        FillLanguages();
         foreach (var page in _pages)
             page.RenderTransform = new TranslateTransform();
 
@@ -84,7 +88,7 @@ public partial class MainWindow : Window
         AppUpdateAutoInstallSwitch.IsChecked = _app.Config.AppUpdateAutoInstall;
         AppUpdatePrereleaseSwitch.IsChecked = _app.Config.AppUpdatePrerelease;
         SyncAppUpdate();
-        AboutCard.Description = $"Version {AppVersion} · synchronisation écran → lampe Govee";
+        AboutCard.Description = Loc.T("Settings.AboutDesc", AppVersion);
         ResetIpHint();
         ResetConnectionHint();
         SyncBrightnessSegments();
@@ -221,9 +225,9 @@ public partial class MainWindow : Window
     {
         bool paused = _app.Engine.IsPaused;
         PauseButton.Tag = paused ? PlayGlyph : PauseGlyph;
-        PauseButton.Content = paused ? "Reprendre" : "Mettre en pause";
+        PauseButton.Content = Loc.T(paused ? "Pause.Resume" : "Pause.Pause");
         SidebarPauseButton.Content = paused ? PlayGlyph : PauseGlyph;
-        SidebarPauseButton.ToolTip = paused ? "Reprendre (Ctrl+P)" : "Mettre en pause (Ctrl+P)";
+        SidebarPauseButton.ToolTip = Loc.T("Common.Shortcut", PauseButton.Content, "P");
     }
 
     // ===== Intensité =====
@@ -313,7 +317,7 @@ public partial class MainWindow : Window
         if (!IsValidIPv4(ip))
         {
             IpTextBox.Tag = "error";
-            IpCard.Description = "Adresse invalide — format attendu : 192.168.1.42";
+            IpCard.Description = Loc.T("Device.IpInvalid");
             return false;
         }
         IpTextBox.Tag = null;
@@ -333,11 +337,11 @@ public partial class MainWindow : Window
     }
 
     private void ResetIpHint() =>
-        IpCard.Description = "Adresse de la lampe sur le réseau local. Entrée pour appliquer.";
+        IpCard.Description = Loc.T("Device.IpHint");
 
     private void ResetConnectionHint()
     {
-        ConnectionCard.Description = "Vérifie que la lampe répond sur le réseau.";
+        ConnectionCard.Description = Loc.T("Device.ConnectionHint");
         TestResultIcon.Visibility = Visibility.Collapsed;
     }
 
@@ -367,21 +371,21 @@ public partial class MainWindow : Window
 
         SetNetworkBusy(true, TestSpinner);
         TestResultIcon.Visibility = Visibility.Collapsed;
-        ConnectionCard.Description = "Interrogation de la lampe…";
+        ConnectionCard.Description = Loc.T("Device.Testing");
         try
         {
             var status = await GoveeClient.QueryStatusAsync(_app.Config.DeviceIp, TimeSpan.FromSeconds(2));
             bool ok = status is not null;
             ConnectionCard.Description = ok
-                ? $"La lampe répond · {(status!.IsOn ? "allumée" : "éteinte")} · luminosité {status.Brightness} %"
-                : "Pas de réponse. Vérifiez l'adresse IP et que le contrôle LAN est activé.";
+                ? Loc.T("Device.TestOk", Loc.T(status!.IsOn ? "Device.On" : "Device.Off"), status.Brightness)
+                : Loc.T("Device.TestNoReply");
             TestResultIcon.Text = ok ? "" : "";
             TestResultIcon.Foreground = (Brush)FindResource(ok ? "SuccessBrush" : "DangerBrush");
             TestResultIcon.Visibility = Visibility.Visible;
         }
         catch (Exception ex)
         {
-            ConnectionCard.Description = $"Test impossible : {ex.Message}";
+            ConnectionCard.Description = Loc.T("Device.TestError", ex.Message);
         }
         finally
         {
@@ -392,7 +396,7 @@ public partial class MainWindow : Window
     private async void ScanButton_Click(object sender, RoutedEventArgs e)
     {
         SetNetworkBusy(true, ScanSpinner);
-        ScanStatus.Text = "Recherche des lampes Govee sur le réseau…";
+        ScanStatus.Text = Loc.T("Device.Scanning");
         ScanPlaceholder.Visibility = Visibility.Visible;
         DevicesList.Visibility = Visibility.Collapsed;
 
@@ -401,7 +405,7 @@ public partial class MainWindow : Window
             var devices = await GoveeClient.DiscoverAsync(TimeSpan.FromSeconds(3));
             if (devices.Count == 0)
             {
-                ScanStatus.Text = "Aucune lampe trouvée. Vérifiez que le contrôle LAN est activé dans l'app Govee Home.";
+                ScanStatus.Text = Loc.T("Device.ScanNone");
                 return;
             }
 
@@ -421,7 +425,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            ScanStatus.Text = $"Erreur de découverte : {ex.Message}";
+            ScanStatus.Text = Loc.T("Device.ScanError", ex.Message);
         }
         finally
         {
@@ -488,6 +492,49 @@ public partial class MainWindow : Window
         _app.Config.Save();
     }
 
+    /// <summary>
+    /// Choix de la langue : « Système » d'abord (avec le drapeau de la langue de Windows), puis
+    /// chaque langue dans sa propre langue. Le changement s'applique au redémarrage.
+    /// </summary>
+    private void FillLanguages()
+    {
+        var system = Loc.Languages.First(l => l.Code == Loc.Resolve(Loc.SystemLanguage));
+        LanguageCombo.Items.Add(new LanguageChoice(Loc.SystemLanguage,
+            Loc.T("Settings.LanguageSystem", system.NativeName), Flags.For(system.Code)));
+        foreach (var (code, name) in Loc.Languages)
+            LanguageCombo.Items.Add(new LanguageChoice(code, name, Flags.For(code)));
+        LanguageCombo.SelectedItem = LanguageCombo.Items.OfType<LanguageChoice>()
+            .FirstOrDefault(c => c.Code == _app.Config.Language) ?? LanguageCombo.Items[0];
+    }
+
+    private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingUi || LanguageCombo.SelectedItem is not LanguageChoice { Code: var code })
+            return;
+        _app.Config.Language = code;
+        _app.Config.Save();
+        // Redémarrer n'a d'intérêt que si les textes affichés changent vraiment
+        LanguageRestartButton.Visibility = Loc.Resolve(code) != Loc.Language ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void LanguageRestart_Click(object sender, RoutedEventArgs e) => _app.Restart();
+
+    /// <summary>Texte dont les parties entre | (« Le |contrôle LAN| doit… ») sont mises en avant.</summary>
+    private void SetHighlightedText(TextBlock block, string text)
+    {
+        block.Inlines.Clear();
+        var parts = text.Split('|');
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (parts[i].Length == 0)
+                continue;
+            var run = new System.Windows.Documents.Run(parts[i]);
+            if (i % 2 == 1)
+                run.Foreground = (Brush)FindResource("TextBrush");
+            block.Inlines.Add(run);
+        }
+    }
+
     private void OpenConfigFolder_Click(object sender, RoutedEventArgs e)
     {
         Directory.CreateDirectory(AppConfig.ConfigDirectory);
@@ -502,15 +549,13 @@ public partial class MainWindow : Window
         string? version = updater.AvailableVersion;
         AppUpdateCard.Description = updater.State switch
         {
-            AppUpdateState.Unavailable => "Indisponibles : cette copie n'a pas été installée avec l'installateur (version de développement).",
-            AppUpdateState.Checking => "Recherche d'une nouvelle version…",
-            AppUpdateState.Downloading => $"Téléchargement de la version {version}… {updater.Progress} %",
-            AppUpdateState.Ready => _app.Config.AppUpdateAutoInstall
-                ? $"Version {version} téléchargée : elle sera installée à la fermeture de l'application."
-                : $"Version {version} téléchargée, prête à être installée.",
-            AppUpdateState.UpToDate => $"Vous avez la dernière version ({updater.CurrentVersion}) · vérifié {Ago(updater.LastCheckUtc ?? DateTime.UtcNow)}",
-            AppUpdateState.Error => $"Recherche impossible : {updater.Error}",
-            _ => $"Version {updater.CurrentVersion}{(updater.IsPortable ? " portable" : "")} · pas encore vérifié."
+            AppUpdateState.Unavailable => Loc.T("AppUpdate.Unavailable"),
+            AppUpdateState.Checking => Loc.T("AppUpdate.Checking"),
+            AppUpdateState.Downloading => Loc.T("AppUpdate.Downloading", version, updater.Progress),
+            AppUpdateState.Ready => Loc.T(_app.Config.AppUpdateAutoInstall ? "AppUpdate.ReadyAuto" : "AppUpdate.Ready", version),
+            AppUpdateState.UpToDate => Loc.T("AppUpdate.UpToDate", updater.CurrentVersion, Ago(updater.LastCheckUtc ?? DateTime.UtcNow)),
+            AppUpdateState.Error => Loc.T("AppUpdate.Error", updater.Error),
+            _ => Loc.T(updater.IsPortable ? "AppUpdate.IdlePortable" : "AppUpdate.Idle", updater.CurrentVersion)
         };
 
         bool installed = updater.IsInstalled;
@@ -525,26 +570,26 @@ public partial class MainWindow : Window
         AppUpdateInstallButton.Visibility = ready ? Visibility.Visible : Visibility.Collapsed;
 
         SidebarUpdateButton.Visibility = ready ? Visibility.Visible : Visibility.Collapsed;
-        SidebarUpdateButton.Content = $"Mettre à jour ({version})";
-        SidebarUpdateButton.ToolTip = $"GoveeScreen {version} est prête : redémarrer pour l'installer";
+        SidebarUpdateButton.Content = Loc.T("AppUpdate.Sidebar", version);
+        SidebarUpdateButton.ToolTip = Loc.T("AppUpdate.SidebarTooltip", version);
 
         string notes = PlainNotes(updater.ReleaseNotes);
         AppUpdateNotesCard.Visibility = ready && notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-        AppUpdateNotesTitle.Text = $"Nouveautés de la version {version}";
+        AppUpdateNotesTitle.Text = Loc.T("AppUpdate.NotesTitle", version);
         AppUpdateNotesText.Text = notes;
     }
 
-    /// <summary>« à l'instant », « il y a 5 min », « il y a 3 h », « le 21/11 ».</summary>
+    /// <summary>« à l'instant », « il y a 5 min », « il y a 3 h », « le 21 novembre » (selon la langue).</summary>
     private static string Ago(DateTime utc)
     {
         var elapsed = DateTime.UtcNow - utc;
         if (elapsed < TimeSpan.FromMinutes(1))
-            return "à l'instant";
+            return Loc.T("Ago.Now");
         if (elapsed < TimeSpan.FromHours(1))
-            return $"il y a {(int)elapsed.TotalMinutes} min";
+            return Loc.T("Ago.Minutes", (int)elapsed.TotalMinutes);
         if (elapsed < TimeSpan.FromDays(1))
-            return $"il y a {(int)elapsed.TotalHours} h";
-        return "le " + utc.ToLocalTime().ToString("dd/MM", CultureInfo.InvariantCulture);
+            return Loc.T("Ago.Hours", (int)elapsed.TotalHours);
+        return Loc.T("Ago.Date", utc.ToLocalTime().ToString(Loc.Culture.DateTimeFormat.MonthDayPattern, Loc.Culture));
     }
 
     /// <summary>Notes de version (Markdown, en anglais) en texte brut, pour l'aperçu dans les paramètres.</summary>
@@ -600,17 +645,17 @@ public partial class MainWindow : Window
     {
         var status = _app.Status;
         var color = _app.LastColor;
-        string monitorName = _app.SelectedMonitor?.Name ?? "Aucun écran sélectionné";
+        string monitorName = _app.SelectedMonitor?.Name ?? Loc.T("Status.NoMonitorSelected");
 
         var (brushKey, heroStatus, detail) = status switch
         {
-            EngineStatus.Active => ("SuccessBrush", "Synchronisation active",
-                color is not null ? $"#{color.R:X2}{color.G:X2}{color.B:X2}   ·   luminosité {color.Brightness:0} %"
-                                  : "En attente d'un changement à l'écran…"),
-            EngineStatus.Paused => ("NeutralBrush", "En pause", "La lampe est éteinte. Reprenez pour la rallumer."),
-            EngineStatus.CaptureError => ("DangerBrush", "Erreur de capture", "Nouvelle tentative en cours…"),
-            EngineStatus.NoMonitor => ("WarningBrush", "Aucun écran", "Choisissez un écran dans la page Écran."),
-            _ => ("WarningBrush", "Démarrage…", " ")
+            EngineStatus.Active => ("SuccessBrush", Loc.T("Status.SyncActive"),
+                color is not null ? Loc.T("Status.Color", $"#{color.R:X2}{color.G:X2}{color.B:X2}", Math.Round(color.Brightness))
+                                  : Loc.T("Status.Waiting")),
+            EngineStatus.Paused => ("NeutralBrush", Loc.T("Status.Paused"), Loc.T("Status.PausedDetail")),
+            EngineStatus.CaptureError => ("DangerBrush", Loc.T("Status.CaptureError"), Loc.T("Status.Retrying")),
+            EngineStatus.NoMonitor => ("WarningBrush", Loc.T("Status.NoMonitor"), Loc.T("Status.NoMonitorDetail")),
+            _ => ("WarningBrush", Loc.T("Status.Starting"), " ")
         };
 
         var statusBrush = (Brush)FindResource(brushKey);
@@ -640,12 +685,12 @@ public partial class MainWindow : Window
     private void UpdateSummaryTiles()
     {
         TileDeviceText.Text = string.IsNullOrEmpty(_app.Config.DeviceIp)
-            ? "Aucune lampe"
+            ? Loc.T("Home.NoDevice")
             : string.IsNullOrEmpty(_app.Config.DeviceModel)
             ? _app.Config.DeviceIp
             : $"{_app.Config.DeviceModel} · {_app.Config.DeviceIp}";
-        TileDisplayText.Text = _app.SelectedMonitor?.Name ?? "Aucun écran";
-        TileCaptureText.Text = (_app.Config.CaptureFpsAuto ? "Auto" : $"{_app.Config.CaptureFps} FPS")
-                               + (_app.Config.SmoothTransitions ? " · lissage" : "");
+        TileDisplayText.Text = _app.SelectedMonitor?.Name ?? Loc.T("Status.NoMonitor");
+        string fps = _app.Config.CaptureFpsAuto ? Loc.T("Display.Auto") : Loc.T("Home.Fps", _app.Config.CaptureFps);
+        TileCaptureText.Text = _app.Config.SmoothTransitions ? Loc.T("Home.WithSmoothing", fps) : fps;
     }
 }

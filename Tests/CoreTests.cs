@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2025-2026 Baba0bab — GoveeScreen
 
+using System.Text.RegularExpressions;
 using GoveeScreenV2.Core;
 using Vortice.D3DCompiler;
 using Xunit;
@@ -118,4 +119,40 @@ public class ShaderTests
 
         Assert.False(bytecode.IsEmpty);
     }
+}
+
+public class LocalizationTests
+{
+    public static IEnumerable<object[]> OtherLanguages() =>
+        Loc.Languages.Where(l => l.Code != Loc.DefaultLanguage).Select(l => new object[] { l.Code });
+
+    private static string[] Placeholders(string text) =>
+        Regex.Matches(text, @"\{\d+\}").Select(m => m.Value).Order().ToArray();
+
+    [Theory]
+    [MemberData(nameof(OtherLanguages))]
+    public void Language_HasSameKeysAndPlaceholdersAsEnglish(string code)
+    {
+        var english = Loc.Load(Loc.DefaultLanguage);
+        var other = Loc.Load(code);
+
+        Assert.Empty(english.Keys.Except(other.Keys));
+        Assert.Empty(other.Keys.Except(english.Keys));
+        foreach (var (key, text) in english)
+        {
+            Assert.True(Placeholders(text).SequenceEqual(Placeholders(other[key])), $"{code}: placeholders of {key}");
+            Assert.True(text.Count(c => c == '|') == other[key].Count(c => c == '|'), $"{code}: '|' separators of {key}");
+            Assert.False(string.IsNullOrWhiteSpace(other[key]), $"{code}: empty {key}");
+        }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("xx")]
+    public void Resolve_FallsBackToASupportedLanguage(string? setting) =>
+        Assert.Contains(Loc.Languages, l => l.Code == Loc.Resolve(setting));
+
+    [Fact]
+    public void Resolve_KeepsAChosenLanguage() => Assert.Equal("de", Loc.Resolve("de"));
 }
