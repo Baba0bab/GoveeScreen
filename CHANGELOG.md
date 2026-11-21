@@ -4,8 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.2.0-beta.1] - 2026-11-21
+
 ### Added
 - *Display → Capture → Lamp color*: choose between *Average* (the mean color of the screen, as before) and *Dominant*, the most present vivid hue. Dominant keeps a red neon red in a dark scene or a blue sky blue above grey buildings, where the average turns dull; a mostly grey or white image (a document, the desktop) still gives its average color. Brightness follows the whole image in both modes. *Average* stays the default.
+- *Home → Display*: when several monitors are connected, switch the captured display in one click from the home page (a drop-down beyond four monitors).
 
 ## [2.1.0] - 2026-11-21
 
@@ -33,6 +36,7 @@ First public release of GoveeScreen 2, a complete rewrite in C# / .NET 10 + WPF 
 - Automatic updates from GitHub Releases: checked at startup and every 12 hours, downloaded in the background (delta packages), installed when the app closes or right away with *Redémarrer et mettre à jour* (settings, side menu or tray menu). Automatic checks, automatic installation and pre-releases can be turned on or off in *Paramètres → Mises à jour*.
 - Settings of the Python version (`~/govee_config.json`) imported on the first launch.
 
-[Unreleased]: https://github.com/Baba0bab/GoveeScreen/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/Baba0bab/GoveeScreen/compare/v2.2.0-beta.1...HEAD
+[2.2.0-beta.1]: https://github.com/Baba0bab/GoveeScreen/compare/v2.1.0...v2.2.0-beta.1
 [2.1.0]: https://github.com/Baba0bab/GoveeScreen/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Baba0bab/GoveeScreen/releases/tag/v2.0.0
