@@ -86,6 +86,89 @@ public class FrameAnalyzerTests
         Assert.Equal(100, FrameAnalyzer.Analyze(Fill(4, 4, 255, 255, 255), 4, 4).BrightnessPercent, 3);
         Assert.Equal(71.52, FrameAnalyzer.Analyze(Fill(4, 4, 0, 255, 0), 4, 4).BrightnessPercent, 2);
     }
+
+    [Fact]
+    public void DominantModeKeepsTheVividHueOfAGreyFrame()
+    {
+        // 70 % grey, 30 % red: the average is a dull pink, the dominant color stays red
+        var bgra = Fill(160, 90, 128, 128, 128);
+        PaintRows(bgra, 160, 63, 90, 220, 30, 30);
+
+        var average = FrameAnalyzer.Analyze(bgra, 160, 90);
+        var dominant = FrameAnalyzer.Analyze(bgra, 160, 90, ColorMode.Dominant);
+
+        Assert.Equal(new FrameColor(220, 30, 30, average.BrightnessPercent), dominant);
+        Assert.InRange(average.G, 90, 110);
+    }
+
+    [Fact]
+    public void DominantModePicksTheLargestColoredArea()
+    {
+        var bgra = Fill(160, 90, 40, 40, 40);
+        PaintRows(bgra, 160, 0, 27, 30, 200, 60);   // 30 % green
+        PaintRows(bgra, 160, 27, 45, 40, 60, 220);  // 20 % blue
+
+        var color = FrameAnalyzer.Analyze(bgra, 160, 90, ColorMode.Dominant);
+
+        Assert.Equal((30, 200, 60), (color.R, color.G, color.B));
+    }
+
+    [Fact]
+    public void DominantModeJoinsRedsOnBothSidesOfZeroHue()
+    {
+        // Two reds just under and just over 0° together outweigh a larger blue area
+        var bgra = Fill(160, 90, 40, 40, 40);
+        PaintRows(bgra, 160, 0, 14, 220, 30, 50);
+        PaintRows(bgra, 160, 14, 28, 220, 50, 30);
+        PaintRows(bgra, 160, 28, 50, 30, 50, 220);
+
+        var color = FrameAnalyzer.Analyze(bgra, 160, 90, ColorMode.Dominant);
+
+        Assert.Equal((220, 40, 40), (color.R, color.G, color.B));
+    }
+
+    [Fact]
+    public void DominantModeIgnoresASmallColoredDetail()
+    {
+        // A white page with a small blue logo (1 % of the frame) stays white
+        var bgra = Fill(100, 100, 240, 240, 240);
+        PaintRows(bgra, 100, 50, 51, 20, 60, 230);
+
+        var average = FrameAnalyzer.Analyze(bgra, 100, 100);
+        var dominant = FrameAnalyzer.Analyze(bgra, 100, 100, ColorMode.Dominant);
+
+        Assert.Equal(average, dominant);
+    }
+
+    [Fact]
+    public void DominantModeStillReportsTheAverage()
+    {
+        // The still-screen and black-frame checks work on the average, whatever the mode
+        var bgra = Fill(160, 90, 128, 128, 128);
+        PaintRows(bgra, 160, 63, 90, 220, 30, 30);
+
+        var dominant = FrameAnalyzer.Analyze(bgra, 160, 90, ColorMode.Dominant, out var average);
+
+        Assert.Equal(FrameAnalyzer.Analyze(bgra, 160, 90), average);
+        Assert.NotEqual(average, dominant);
+    }
+
+    [Fact]
+    public void DominantModeOfAGreyFrameIsTheAverage()
+    {
+        var bgra = Fill(160, 90, 90, 90, 90);
+        PaintRows(bgra, 160, 45, 90, 200, 200, 200);
+
+        Assert.Equal(FrameAnalyzer.Analyze(bgra, 160, 90), FrameAnalyzer.Analyze(bgra, 160, 90, ColorMode.Dominant));
+    }
+
+    [Theory]
+    [InlineData("dominant", ColorMode.Dominant)]
+    [InlineData("average", ColorMode.Average)]
+    [InlineData(null, ColorMode.Average)]
+    [InlineData("rainbow", ColorMode.Average)]
+    public void ColorModeSettingIsParsed(string? value, ColorMode expected) =>
+        Assert.Equal(expected, AppController.ParseColorMode(value));
 }
 
 public class PacingTests

@@ -12,6 +12,7 @@ public class AppConfig
     public int BrightnessLevel { get; set; } = 2; // 1=50%, 2=100%, 3=200%, 4=Max
     public bool StartMinimized { get; set; }
     public bool SmoothTransitions { get; set; } = true;
+    public string ColorMode { get; set; } = "average"; // "average" (moyenne) ou "dominant" ; valeur inconnue = moyenne
     public int CaptureFps { get; set; } = 30;
     public bool CaptureFpsAuto { get; set; } = true;
     public string? DeviceModel { get; set; }   // SKU renvoyé par la découverte (ex. "H6008"), affichage seulement

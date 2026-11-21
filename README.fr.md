@@ -21,7 +21,7 @@
 
 > L'interface est disponible en **anglais, français, allemand et espagnol**. Elle suit par défaut la langue d'affichage de Windows ; changez-la dans *Paramètres → Général → Langue*.
 
-GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Govee sur votre réseau local : la lumière de la pièce suit ce que vous regardez ou ce à quoi vous jouez. L'application parle directement à la lampe via l'**API LAN** de Govee : pas de cloud, pas de compte, pas de clé d'API.
+GoveeScreen lit la couleur de votre écran et l'envoie à une lampe Govee sur votre réseau local : la lumière de la pièce suit ce que vous regardez ou ce à quoi vous jouez. L'application parle directement à la lampe via l'**API LAN** de Govee : pas de cloud, pas de compte, pas de clé d'API.
 
 ![Page d'accueil](docs/screenshots/fr/home.png)
 
@@ -31,7 +31,8 @@ GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Go
 - **Quasiment aucune charge sur un écran fixe** : Windows ne fournit une image que si elle change, et la capture est entièrement libérée pendant la pause.
 - **Cadence** : *Auto* (jusqu'à 30 FPS, le rythme accepté par la lampe) ou fixe 10 / 15 / 30 / 60 FPS, tenue précisément même sur écran 144 / 240 Hz (limitée à la source sous Windows 11 24H2+).
 - **Plein écran exclusif** : si l'écran capturé reste noir 2 s (certains jeux anciens), GoveeScreen bascule sur la capture de la fenêtre du jeu, puis revient.
-- **Moyenne intelligente** : bandes noires (letterbox) détectées et ignorées, barre des tâches exclue hors plein écran, transitions lissées (désactivable).
+- **Couleur moyenne ou dominante** : la lampe prend au choix la couleur moyenne de l'écran ou sa teinte vive la plus présente, plus fidèle sur une image sombre ou chargée.
+- **Échantillonnage intelligent** : bandes noires (letterbox) détectées et ignorées, barre des tâches exclue hors plein écran, transitions lissées (désactivable).
 - **Détection des lampes** : trouve les lampes Govee du réseau (multicast) et teste la connexion.
 - **Choix de l'écran** suivi par la lampe, avec le vrai nom commercial des moniteurs.
 - **Intensité** : multiplicateur de luminosité 50 %, 100 %, 200 % ou *Max*.

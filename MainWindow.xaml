@@ -333,6 +333,17 @@
                                 </StackPanel>
                             </Border>
                         </ui:SettingCard>
+                        <ui:SettingCard Icon="&#xE771;" Header="{ui:Tr Display.ColorMode}"
+                                        Description="{ui:Tr Display.ColorModeDesc}">
+                            <Border Style="{StaticResource SegmentedHost}">
+                                <StackPanel x:Name="ColorModeSegments" Orientation="Horizontal">
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="ColorMode" Tag="average"
+                                                 Content="{ui:Tr Display.ColorAverage}" Checked="ColorModeSegment_Checked"/>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="ColorMode" Tag="dominant"
+                                                 Content="{ui:Tr Display.ColorDominant}" Checked="ColorModeSegment_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </ui:SettingCard>
                         <ui:SettingCard Icon="&#xE790;" Header="{ui:Tr Display.Smooth}"
                                         Description="{ui:Tr Display.SmoothDesc}">
                             <CheckBox x:Name="SmoothSwitch" Style="{StaticResource Switch}"

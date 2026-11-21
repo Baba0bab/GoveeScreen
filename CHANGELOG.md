@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- *Display → Capture → Lamp color*: choose between *Average* (the mean color of the screen, as before) and *Dominant*, the most present vivid hue. Dominant keeps a red neon red in a dark scene or a blue sky blue above grey buildings, where the average turns dull; a mostly grey or white image (a document, the desktop) still gives its average color. Brightness follows the whole image in both modes. *Average* stays the default.
+
 ## [2.1.0] - 2026-11-21
 
 ### Added

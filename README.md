@@ -21,7 +21,7 @@
 
 > The interface is available in **English, French, German and Spanish**. It follows the Windows display language by default; change it in *Settings → General → Language*.
 
-GoveeScreen reads the dominant color of your screen and sends it to a Govee light over your local network, so the light in your room follows what you watch or play. It talks to the lamp directly through Govee's **LAN API**: no cloud, no account, no API key.
+GoveeScreen reads the color of your screen and sends it to a Govee light over your local network, so the light in your room follows what you watch or play. It talks to the lamp directly through Govee's **LAN API**: no cloud, no account, no API key.
 
 ![Home page](docs/screenshots/en/home.png)
 
@@ -31,7 +31,8 @@ GoveeScreen reads the dominant color of your screen and sends it to a Govee ligh
 - **Almost no CPU on a still screen**: Windows only delivers a frame when the image changes, and capture is released entirely while paused.
 - **Frame rate**: *Auto* (up to 30 FPS, the rate the lamp accepts) or fixed 10 / 15 / 30 / 60 FPS, paced accurately even on 144 / 240 Hz displays (limited at the source on Windows 11 24H2+).
 - **Exclusive full screen fallback**: if the captured display stays black for 2 s (some older games), GoveeScreen switches to capturing the game window, then switches back.
-- **Smart averaging**: black bars (letterbox) are detected and ignored, the taskbar is left out outside full screen, colors are smoothed between frames (can be turned off).
+- **Average or dominant color**: the lamp takes either the mean color of the screen or its most present vivid hue, truer on dark or busy images.
+- **Smart sampling**: black bars (letterbox) are detected and ignored, the taskbar is left out outside full screen, colors are smoothed between frames (can be turned off).
 - **Lamp discovery**: finds the Govee lights on your network (multicast) and tests the connection.
 - **Display choice**: pick which monitor the lamp follows, with the monitors' real model names.
 - **Intensity**: 50 %, 100 %, 200 % or *Max* brightness multiplier.

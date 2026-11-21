@@ -34,7 +34,7 @@
   "Brightness.Level3": "200 %",
   "Brightness.Level4": "Máx.",
 
-  "Home.Subtitle": "La lámpara reproduce en tiempo real el color dominante de su pantalla.",
+  "Home.Subtitle": "La lámpara reproduce en tiempo real los colores de su pantalla.",
   "Home.Hide": "Ocultar",
   "Home.HideTooltip": "Minimizar en el área de notificación: la sincronización continúa",
   "Home.Rendering": "Renderizado",
@@ -81,6 +81,10 @@
   "Display.Fps": "Frecuencia de captura",
   "Display.FpsDesc": "Auto: hasta 30 FPS (el ritmo de envío a la lámpara), solo cuando la imagen cambia. Más bajo = menos carga de GPU/CPU.",
   "Display.Auto": "Auto",
+  "Display.ColorMode": "Color de la lámpara",
+  "Display.ColorModeDesc": "Media: el color medio de la pantalla. Dominante: el tono vivo más presente, más fiel en imágenes oscuras o recargadas. En ambos casos, el brillo sigue a toda la imagen.",
+  "Display.ColorAverage": "Media",
+  "Display.ColorDominant": "Dominante",
   "Display.Smooth": "Transiciones suaves",
   "Display.SmoothDesc": "Suaviza los cambios de color de la lámpara.",
 

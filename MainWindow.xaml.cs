@@ -97,6 +97,7 @@ public partial class MainWindow : Window
         ResetConnectionHint();
         SyncBrightnessSegments();
         SyncFpsSegments();
+        SyncColorModeSegments();
         SyncPauseState();
         SyncMonitors();
 
@@ -392,6 +393,17 @@ public partial class MainWindow : Window
 
     private void SyncFpsSegments() =>
         CheckSegment(FpsSegments, _app.Config.CaptureFpsAuto ? "0" : _app.Config.CaptureFps.ToString(CultureInfo.InvariantCulture));
+
+    private void ColorModeSegment_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi || sender is not RadioButton { Tag: string tag })
+            return;
+        _app.SetColorMode(AppController.ParseColorMode(tag));
+        UpdateSummaryTiles();
+    }
+
+    private void SyncColorModeSegments() =>
+        CheckSegment(ColorModeSegments, AppController.ParseColorMode(_app.Config.ColorMode) == ColorMode.Dominant ? "dominant" : "average");
 
     private void SmoothSwitch_Changed(object sender, RoutedEventArgs e)
     {

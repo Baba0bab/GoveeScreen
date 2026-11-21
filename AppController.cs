@@ -49,6 +49,7 @@ public sealed class AppController : IDisposable
         {
             BrightnessLevel = Config.BrightnessLevel,
             SmoothTransitions = Config.SmoothTransitions,
+            ColorMode = ParseColorMode(Config.ColorMode),
             TargetFps = Config.CaptureFps,
             AutoFps = Config.CaptureFpsAuto,
             StaticScreenTimeout = StaticScreenTimeout(Config)
@@ -354,6 +355,16 @@ public sealed class AppController : IDisposable
         Config.SmoothTransitions = smooth;
         Config.Save();
     }
+
+    public void SetColorMode(ColorMode mode)
+    {
+        Engine.ColorMode = mode;
+        Config.ColorMode = mode == ColorMode.Dominant ? "dominant" : "average";
+        Config.Save();
+    }
+
+    public static ColorMode ParseColorMode(string? value) =>
+        value == "dominant" ? ColorMode.Dominant : ColorMode.Average;
 
     // ===== Lampe =====
 

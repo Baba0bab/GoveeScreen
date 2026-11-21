@@ -34,7 +34,7 @@
   "Brightness.Level3": "200%",
   "Brightness.Level4": "Max",
 
-  "Home.Subtitle": "The lamp mirrors the dominant color of your screen in real time.",
+  "Home.Subtitle": "The lamp mirrors the colors of your screen in real time.",
   "Home.Hide": "Hide",
   "Home.HideTooltip": "Minimize to the notification area — sync keeps running",
   "Home.Rendering": "Rendering",
@@ -81,6 +81,10 @@
   "Display.Fps": "Capture rate",
   "Display.FpsDesc": "Auto: up to 30 FPS (the rate at which the lamp is updated), only when the image changes. Lower = less GPU/CPU load.",
   "Display.Auto": "Auto",
+  "Display.ColorMode": "Lamp color",
+  "Display.ColorModeDesc": "Average: the mean color of the display. Dominant: the most present vivid hue, truer on dark or busy images. Brightness follows the whole image in both cases.",
+  "Display.ColorAverage": "Average",
+  "Display.ColorDominant": "Dominant",
   "Display.Smooth": "Smooth transitions",
   "Display.SmoothDesc": "Softens the lamp's color changes.",
 

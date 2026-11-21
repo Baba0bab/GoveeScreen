@@ -56,6 +56,7 @@ public sealed class SyncEngine : IDisposable
 
     public int BrightnessLevel { get; set; } = 2;
     public bool SmoothTransitions { get; set; } = true;
+    public ColorMode ColorMode { get; set; } = ColorMode.Average;
 
     /// <summary>Cadence automatique (jusqu'à 30 FPS, le rythme d'envoi, quand l'image change).</summary>
     public bool AutoFps
@@ -251,10 +252,10 @@ public sealed class SyncEngine : IDisposable
                 }
 
                 lastFrame = Pacing.Now;
-                var color = FrameAnalyzer.Analyze(buffer!, capturer.SmallWidth, capturer.SmallHeight);
+                var color = FrameAnalyzer.Analyze(buffer!, capturer.SmallWidth, capturer.SmallHeight, ColorMode, out var average);
 
                 // Image entièrement noire : possible jeu plein écran que la capture ne voit pas
-                if (!capturer.IsWindowCapture && color.R + color.G + color.B <= 3)
+                if (!capturer.IsWindowCapture && average.R + average.G + average.B <= 3)
                 {
                     if (blackSince < 0)
                         blackSince = lastFrame;
@@ -264,7 +265,8 @@ public sealed class SyncEngine : IDisposable
                     blackSince = -1;
                 }
 
-                if (CheckStaticScreen(color, activeMonitor))
+                // Écran figé jugé sur la moyenne, quel que soit le mode de couleur
+                if (CheckStaticScreen(average, activeMonitor))
                     ProcessColor(color, activeMonitor, ref lastSend);
             }
             catch
