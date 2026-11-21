@@ -313,6 +313,11 @@ public sealed class SyncEngine : IDisposable
                 _govee.TurnOn();
                 _emaInitialized = false;   // repartir directement de l'image actuelle
                 _forceSend = true;
+                // Réveil par une saisie sans changement d'image (curseur non capturé) : aucune frame
+                // n'arrivera, on repasse donc en "actif" avec la dernière couleur envoyée
+                if (color is null && _lastSentBrightness >= 0)
+                    Updated?.Invoke(new EngineUpdate(EngineStatus.Active, _lastSentColor.r, _lastSentColor.g,
+                        _lastSentColor.b, _lastSentBrightness, monitor?.FriendlyName));
                 break;
         }
         return !_staticScreen.IsIdle;
