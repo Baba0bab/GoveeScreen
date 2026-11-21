@@ -19,6 +19,7 @@ First public release of GoveeScreen 2, a complete rewrite in C# / .NET 10 + WPF 
 - Notification area icon with quick actions (pause, intensity, display); the window is destroyed while hidden to save memory.
 - Start with Windows, optionally hidden.
 - Windows installer (per user, no administrator rights, Start menu and desktop shortcuts, clean uninstall) and portable version.
+- Automatic updates from GitHub Releases: checked at startup and every 12 hours, downloaded in the background (delta packages), installed when the app closes or right away with *Redémarrer et mettre à jour* (settings, side menu or tray menu). Automatic checks, automatic installation and pre-releases can be turned on or off in *Paramètres → Mises à jour*.
 - Settings of the Python version (`~/govee_config.json`) imported on the first launch.
 
 [Unreleased]: https://github.com/Baba0bab/GoveeScreen/commits/main

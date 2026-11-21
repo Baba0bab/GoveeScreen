@@ -4,7 +4,7 @@
 
 ## English
 
-A release is a git tag `vX.Y.Z`. Pushing it runs [`.github/workflows/release.yml`](../.github/workflows/release.yml), which tests, builds the installer and the update packages with [`scripts/pack.ps1`](../scripts/pack.ps1) (Velopack), and publishes them on GitHub Releases. Once the app updates itself, **every installed copy will download it automatically**: check before tagging.
+A release is a git tag `vX.Y.Z`. Pushing it runs [`.github/workflows/release.yml`](../.github/workflows/release.yml), which tests, builds the installer and the update packages with [`scripts/pack.ps1`](../scripts/pack.ps1) (Velopack), and publishes them on GitHub Releases. **Every installed copy downloads it automatically**: a published release cannot really be taken back, check before tagging.
 
 ### 1. Choose the version ([SemVer](https://semver.org/))
 
@@ -80,7 +80,7 @@ Expected assets: `GoveeScreen-win-Setup.exe`, `GoveeScreen-win-Portable.zip`, `G
 These identifiers are baked into every installed copy; changing them breaks updates or user data:
 
 - package id `GoveeScreen` (`scripts/pack.ps1`) and the channel `win`;
-- the repository URL `https://github.com/Baba0bab/GoveeScreen`, where installed copies will look for updates;
+- `AppUpdater.RepositoryUrl` (`https://github.com/Baba0bab/GoveeScreen`), where installed copies look for updates;
 - the config folder `%APPDATA%\GoveeScreen` and the `HKCU\…\Run` value name `GoveeScreen`;
 - the asset names produced by Velopack (do not rename files on the release page).
 
@@ -88,7 +88,7 @@ These identifiers are baked into every installed copy; changing them breaks upda
 
 ## Français
 
-Une version est un tag git `vX.Y.Z`. Le pousser lance [`.github/workflows/release.yml`](../.github/workflows/release.yml) : tests, construction de l'installateur et des paquets de mise à jour avec [`scripts/pack.ps1`](../scripts/pack.ps1) (Velopack), publication sur GitHub Releases. Dès que l'application se mettra à jour seule, **toutes les copies installées la téléchargeront d'elles-mêmes** : vérifiez avant de taguer.
+Une version est un tag git `vX.Y.Z`. Le pousser lance [`.github/workflows/release.yml`](../.github/workflows/release.yml) : tests, construction de l'installateur et des paquets de mise à jour avec [`scripts/pack.ps1`](../scripts/pack.ps1) (Velopack), publication sur GitHub Releases. **Toutes les copies installées la téléchargent d'elles-mêmes** : une version publiée ne se retire pas vraiment, vérifiez avant de taguer.
 
 ### 1. Choisir le numéro ([SemVer](https://semver.org/lang/fr/))
 
@@ -151,6 +151,6 @@ Fichiers attendus : `GoveeScreen-win-Setup.exe`, `GoveeScreen-win-Portable.zip`,
 Ces identifiants sont inscrits dans chaque copie installée ; les changer casse les mises à jour ou les données :
 
 - l'identifiant de paquet `GoveeScreen` (`scripts/pack.ps1`) et le canal `win` ;
-- l'URL du dépôt `https://github.com/Baba0bab/GoveeScreen`, où les copies installées chercheront les mises à jour ;
+- `AppUpdater.RepositoryUrl` (`https://github.com/Baba0bab/GoveeScreen`), où les copies installées cherchent les mises à jour ;
 - le dossier de configuration `%APPDATA%\GoveeScreen` et le nom de la valeur `HKCU\…\Run` `GoveeScreen` ;
 - les noms des fichiers produits par Velopack (ne renommez rien sur la page de la release).

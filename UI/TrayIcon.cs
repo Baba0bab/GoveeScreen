@@ -5,8 +5,9 @@ using GoveeScreenV2.Core;
 namespace GoveeScreenV2.UI;
 
 /// <summary>État reflété par le menu de la zone de notification, relu à chaque ouverture.</summary>
+/// <param name="UpdateVersion">Version téléchargée et prête à installer, sinon null.</param>
 public record TrayState(string Status, bool IsPaused, int BrightnessLevel,
-    IReadOnlyList<MonitorInfo> Monitors, MonitorInfo? SelectedMonitor);
+    IReadOnlyList<MonitorInfo> Monitors, MonitorInfo? SelectedMonitor, string? UpdateVersion);
 
 /// <summary>
 /// Icône de la zone de notification : clic gauche = ouvrir la fenêtre,
@@ -146,7 +147,9 @@ public sealed class TrayIcon : IDisposable
 
     private const string WindowClass = "GoveeScreenTray";
     private const int NIM_ADD = 0, NIM_MODIFY = 1, NIM_DELETE = 2;
-    private const int NIF_MESSAGE = 1, NIF_ICON = 2, NIF_TIP = 4;
+    private const int NIF_MESSAGE = 1, NIF_ICON = 2, NIF_TIP = 4, NIF_INFO = 0x10;
+    private const int NIIF_INFO = 1, NIIF_RESPECT_QUIET_TIME = 0x80;
+    private const int NIN_BALLOONUSERCLICK = 0x0405;
     private const int WM_NULL = 0, WM_APP = 0x8000;
     private const int CallbackMessage = WM_APP + 1;
     private const int WM_LBUTTONUP = 0x0202, WM_RBUTTONUP = 0x0205;
@@ -160,7 +163,7 @@ public sealed class TrayIcon : IDisposable
     private static readonly int TaskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
 
     // Identifiants des commandes du menu
-    private const int CmdOpen = 1, CmdPause = 2, CmdExit = 3, CmdBrightness = 100, CmdMonitor = 200;
+    private const int CmdOpen = 1, CmdPause = 2, CmdExit = 3, CmdUpdate = 4, CmdBrightness = 100, CmdMonitor = 200;
 
     // ===== État =====
 
@@ -177,6 +180,8 @@ public sealed class TrayIcon : IDisposable
     public event Action<int>? BrightnessSelected;
     public event Action<MonitorInfo>? MonitorSelected;
     public event Action? ExitRequested;
+    public event Action? UpdateRequested;
+    public event Action? NotificationClicked;
 
     public TrayIcon(Func<TrayState> getState)
     {
@@ -250,7 +255,14 @@ public sealed class TrayIcon : IDisposable
         Notify(NIM_MODIFY, NIF_TIP);
     }
 
-    private void Notify(int message, int flags)
+    /// <summary>Notification Windows (respecte le mode Concentration / Ne pas déranger).</summary>
+    public void ShowNotification(string title, string text)
+    {
+        Notify(NIM_MODIFY, NIF_INFO, title.Length > 63 ? title[..63] : title, text.Length > 255 ? text[..255] : text,
+            NIIF_INFO | NIIF_RESPECT_QUIET_TIME);
+    }
+
+    private void Notify(int message, int flags, string infoTitle = "", string info = "", int infoFlags = 0)
     {
         var data = new NOTIFYICONDATA
         {
@@ -260,7 +272,10 @@ public sealed class TrayIcon : IDisposable
             uFlags = flags,
             uCallbackMessage = CallbackMessage,
             hIcon = _icon,
-            szTip = _tooltip
+            szTip = _tooltip,
+            szInfo = info,
+            szInfoTitle = infoTitle,
+            dwInfoFlags = infoFlags
         };
         Shell_NotifyIcon(message, ref data);
     }
@@ -280,6 +295,9 @@ public sealed class TrayIcon : IDisposable
                     break;
                 case WM_RBUTTONUP:
                     _dispatcher.BeginInvoke(ShowMenu);
+                    break;
+                case NIN_BALLOONUSERCLICK:
+                    _dispatcher.BeginInvoke(() => NotificationClicked?.Invoke());
                     break;
             }
             return IntPtr.Zero;
@@ -317,6 +335,8 @@ public sealed class TrayIcon : IDisposable
             AppendMenu(menu, MF_POPUP | (state.Monitors.Count == 0 ? MF_GRAYED : 0), monitors, "Écran");
 
             AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
+            if (state.UpdateVersion is not null)
+                AppendMenu(menu, MF_STRING, CmdUpdate, $"Redémarrer et mettre à jour ({state.UpdateVersion})");
             AppendMenu(menu, MF_STRING, CmdExit, "Quitter");
             SetMenuDefaultItem(menu, CmdOpen, 0);   // en gras, comme le clic gauche
 
@@ -348,6 +368,9 @@ public sealed class TrayIcon : IDisposable
                 break;
             case CmdExit:
                 ExitRequested?.Invoke();
+                break;
+            case CmdUpdate:
+                UpdateRequested?.Invoke();
                 break;
             case > CmdBrightness and <= CmdBrightness + 4:
                 BrightnessSelected?.Invoke(command - CmdBrightness);

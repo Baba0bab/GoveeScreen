@@ -80,6 +80,10 @@ public partial class MainWindow : Window
         CloseToTraySwitch.IsChecked = _app.Config.CloseToTray;
         PauseOnLockSwitch.IsChecked = _app.Config.PauseOnLock;
         LampOnLockScreenSwitch.IsChecked = _app.Config.LampOnLockScreen;
+        AppUpdateCheckSwitch.IsChecked = _app.Config.AppUpdateCheck;
+        AppUpdateAutoInstallSwitch.IsChecked = _app.Config.AppUpdateAutoInstall;
+        AppUpdatePrereleaseSwitch.IsChecked = _app.Config.AppUpdatePrerelease;
+        SyncAppUpdate();
         AboutCard.Description = $"Version {AppVersion} · synchronisation écran → lampe Govee";
         ResetIpHint();
         ResetConnectionHint();
@@ -488,6 +492,100 @@ public partial class MainWindow : Window
     {
         Directory.CreateDirectory(AppConfig.ConfigDirectory);
         Process.Start(new ProcessStartInfo(AppConfig.ConfigDirectory) { UseShellExecute = true });
+    }
+
+    // ===== Mises à jour de l'application =====
+
+    internal void SyncAppUpdate()
+    {
+        var updater = _app.Updater;
+        string? version = updater.AvailableVersion;
+        AppUpdateCard.Description = updater.State switch
+        {
+            AppUpdateState.Unavailable => "Indisponibles : cette copie n'a pas été installée avec l'installateur (version de développement).",
+            AppUpdateState.Checking => "Recherche d'une nouvelle version…",
+            AppUpdateState.Downloading => $"Téléchargement de la version {version}… {updater.Progress} %",
+            AppUpdateState.Ready => _app.Config.AppUpdateAutoInstall
+                ? $"Version {version} téléchargée : elle sera installée à la fermeture de l'application."
+                : $"Version {version} téléchargée, prête à être installée.",
+            AppUpdateState.UpToDate => $"Vous avez la dernière version ({updater.CurrentVersion}) · vérifié {Ago(updater.LastCheckUtc ?? DateTime.UtcNow)}",
+            AppUpdateState.Error => $"Recherche impossible : {updater.Error}",
+            _ => $"Version {updater.CurrentVersion}{(updater.IsPortable ? " portable" : "")} · pas encore vérifié."
+        };
+
+        bool installed = updater.IsInstalled;
+        bool busy = updater.State is AppUpdateState.Checking or AppUpdateState.Downloading;
+        bool ready = updater.State == AppUpdateState.Ready;
+        AppUpdateAutoCheckCard.IsEnabled = installed;
+        AppUpdateAutoInstallCard.IsEnabled = installed;
+        AppUpdatePrereleaseCard.IsEnabled = installed;
+        AppUpdateSpinner.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        AppUpdateCheckButton.Visibility = ready ? Visibility.Collapsed : Visibility.Visible;
+        AppUpdateCheckButton.IsEnabled = installed && !busy;
+        AppUpdateInstallButton.Visibility = ready ? Visibility.Visible : Visibility.Collapsed;
+
+        SidebarUpdateButton.Visibility = ready ? Visibility.Visible : Visibility.Collapsed;
+        SidebarUpdateButton.Content = $"Mettre à jour ({version})";
+        SidebarUpdateButton.ToolTip = $"GoveeScreen {version} est prête : redémarrer pour l'installer";
+
+        string notes = PlainNotes(updater.ReleaseNotes);
+        AppUpdateNotesCard.Visibility = ready && notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        AppUpdateNotesTitle.Text = $"Nouveautés de la version {version}";
+        AppUpdateNotesText.Text = notes;
+    }
+
+    /// <summary>« à l'instant », « il y a 5 min », « il y a 3 h », « le 21/11 ».</summary>
+    private static string Ago(DateTime utc)
+    {
+        var elapsed = DateTime.UtcNow - utc;
+        if (elapsed < TimeSpan.FromMinutes(1))
+            return "à l'instant";
+        if (elapsed < TimeSpan.FromHours(1))
+            return $"il y a {(int)elapsed.TotalMinutes} min";
+        if (elapsed < TimeSpan.FromDays(1))
+            return $"il y a {(int)elapsed.TotalHours} h";
+        return "le " + utc.ToLocalTime().ToString("dd/MM", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Notes de version (Markdown, en anglais) en texte brut, pour l'aperçu dans les paramètres.</summary>
+    private static string PlainNotes(string? markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+            return "";
+        var lines = markdown.Replace("\r", "").Split('\n')
+            .Select(l => l.TrimEnd().TrimStart('#', ' ').Replace("**", "").Replace("`", ""))
+            // Titre « [2.1.0] - date » (déjà affiché) et liens de référence « [2.1.0]: https://… »
+            .Where(l => !l.StartsWith('[') && !l.StartsWith('|') && !l.StartsWith("---"))
+            .Select(l => l.StartsWith("- ") ? "•  " + l[2..] : l);
+        return string.Join("\n", lines).Trim();
+    }
+
+    private void AppUpdateCheck_Click(object sender, RoutedEventArgs e) => _ = _app.Updater.CheckAndDownloadAsync();
+
+    private void AppUpdateInstall_Click(object sender, RoutedEventArgs e) => _app.RestartToUpdate();
+
+    private void AppUpdateCheckSwitch_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi)
+            return;
+        _app.Config.AppUpdateCheck = AppUpdateCheckSwitch.IsChecked == true;
+        _app.Config.Save();
+    }
+
+    private void AppUpdateAutoInstallSwitch_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi)
+            return;
+        _app.Config.AppUpdateAutoInstall = AppUpdateAutoInstallSwitch.IsChecked == true;
+        _app.Config.Save();
+        SyncAppUpdate();
+    }
+
+    private void AppUpdatePrereleaseSwitch_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi)
+            return;
+        _app.SetAppUpdatePrerelease(AppUpdatePrereleaseSwitch.IsChecked == true);
     }
 
     // ===== Zone de notification =====

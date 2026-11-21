@@ -327,6 +327,37 @@
         </Setter>
     </Style>
 
+    <!-- Action mise en avant dans le menu latéral (mise à jour prête) : même géométrie qu'un NavItem -->
+    <Style x:Key="SidebarAction" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource AccentLightBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{StaticResource AccentSubtleBrush}" CornerRadius="6">
+                        <Grid>
+                            <TextBlock Style="{StaticResource Icon}" Width="40" TextAlignment="Center" HorizontalAlignment="Left"
+                                       Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                            <ContentPresenter Margin="44,0,8,0" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#407C6CF2"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#307C6CF2"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ===== Contrôle segmenté (RadioButtons dans un SegmentedHost) ===== -->
     <Style x:Key="SegmentedHost" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource InsetBrush}"/>

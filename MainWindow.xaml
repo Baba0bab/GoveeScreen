@@ -51,6 +51,10 @@
                 <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom" Style="{StaticResource NavItem}"
                              Tag="&#xE713;" Content="Paramètres" ToolTip="Paramètres (Ctrl+4)" Checked="Nav_Checked"/>
 
+                <!-- Mise à jour téléchargée : redémarrer pour l'installer (au-dessus de Paramètres) -->
+                <Button x:Name="SidebarUpdateButton" DockPanel.Dock="Bottom" Style="{StaticResource SidebarAction}"
+                        Tag="&#xE777;" Visibility="Collapsed" Click="AppUpdateInstall_Click"/>
+
                 <StackPanel>
                     <RadioButton x:Name="NavHome" Style="{StaticResource NavItem}"
                                  Tag="&#xE80F;" Content="Accueil" ToolTip="Accueil (Ctrl+1)" Checked="Nav_Checked"/>
@@ -363,6 +367,42 @@
                                         Description="Le bouton ✕ masque la fenêtre au lieu de quitter : la lampe reste synchronisée. Pour quitter, utilisez le menu de l'icône.">
                             <CheckBox x:Name="CloseToTraySwitch" Style="{StaticResource Switch}"
                                       Checked="CloseToTraySwitch_Changed" Unchecked="CloseToTraySwitch_Changed"/>
+                        </ui:SettingCard>
+
+                        <TextBlock Text="Mises à jour" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard x:Name="AppUpdateCard" Icon="&#xE777;" Header="Mises à jour de l'application">
+                            <StackPanel Orientation="Horizontal">
+                                <Control x:Name="AppUpdateSpinner" Style="{StaticResource Spinner}" Margin="0,0,12,0"
+                                         Visibility="Collapsed"/>
+                                <Button x:Name="AppUpdateCheckButton" Tag="&#xE72C;" Content="Rechercher"
+                                        Click="AppUpdateCheck_Click"/>
+                                <Button x:Name="AppUpdateInstallButton" Style="{StaticResource AccentButton}" Tag="&#xE777;"
+                                        Content="Redémarrer et mettre à jour" Visibility="Collapsed"
+                                        Click="AppUpdateInstall_Click"/>
+                            </StackPanel>
+                        </ui:SettingCard>
+                        <Border x:Name="AppUpdateNotesCard" Style="{StaticResource Card}" Background="{StaticResource InsetBrush}"
+                                Margin="0,0,0,4" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock x:Name="AppUpdateNotesTitle" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <TextBlock x:Name="AppUpdateNotesText" Style="{StaticResource Caption}" FontSize="13"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <ui:SettingCard x:Name="AppUpdateAutoCheckCard" Icon="&#xE895;" Header="Rechercher automatiquement"
+                                        Description="Au démarrage puis toutes les 12 h, sur les Releases GitHub du projet. La nouvelle version est téléchargée en arrière-plan.">
+                            <CheckBox x:Name="AppUpdateCheckSwitch" Style="{StaticResource Switch}"
+                                      Checked="AppUpdateCheckSwitch_Changed" Unchecked="AppUpdateCheckSwitch_Changed"/>
+                        </ui:SettingCard>
+                        <ui:SettingCard x:Name="AppUpdateAutoInstallCard" Icon="&#xE896;" Header="Installer automatiquement"
+                                        Description="Une version téléchargée s'installe à la fermeture de l'application (ou au démarrage suivant). Sinon, utilisez « Redémarrer et mettre à jour ».">
+                            <CheckBox x:Name="AppUpdateAutoInstallSwitch" Style="{StaticResource Switch}"
+                                      Checked="AppUpdateAutoInstallSwitch_Changed" Unchecked="AppUpdateAutoInstallSwitch_Changed"/>
+                        </ui:SettingCard>
+                        <ui:SettingCard x:Name="AppUpdatePrereleaseCard" Icon="&#xE9D9;" Header="Inclure les préversions"
+                                        Description="Reçoit aussi les versions bêta, pour tester les nouveautés en avance (moins stables).">
+                            <CheckBox x:Name="AppUpdatePrereleaseSwitch" Style="{StaticResource Switch}"
+                                      Checked="AppUpdatePrereleaseSwitch_Changed" Unchecked="AppUpdatePrereleaseSwitch_Changed"/>
                         </ui:SettingCard>
 
                         <TextBlock Text="À propos" Style="{StaticResource SectionHeader}"/>

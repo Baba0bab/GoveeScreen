@@ -36,6 +36,7 @@ GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Go
 - **Verrouillage de session** : en option, pause et lampe éteinte au verrouillage de Windows, rallumée dès que l'écran de verrouillage s'allume.
 - **Zone de notification** : pause, intensité et écran depuis le menu de l'icône, sans ouvrir la fenêtre. Masquée, la fenêtre est détruite et l'application occupe environ 70 Mo.
 - **Démarrage avec Windows**, éventuellement masqué.
+- **Mises à jour automatiques** depuis les Releases GitHub : petits téléchargements delta, installés à la fermeture de l'application.
 - Raccourcis : `Ctrl+1` … `Ctrl+4` pour changer de page, `Ctrl+P` pour pause / reprise.
 
 | Lampe | Écran | Paramètres |
@@ -60,9 +61,11 @@ GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Go
 > Get-FileHash .\GoveeScreen-win-Setup.exe -Algorithm SHA256
 > ```
 
-**Version portable** : `GoveeScreen-win-Portable.zip`, à extraire n'importe où, puis lancez `GoveeScreen.exe`.
+**Version portable** : `GoveeScreen-win-Portable.zip`, à extraire n'importe où, puis lancez `GoveeScreen.exe`. Elle se met à jour elle aussi.
 
-Pour mettre à jour, lancez l'installateur de la nouvelle version : vos réglages sont conservés.
+### Mises à jour
+
+L'application consulte les Releases GitHub au démarrage puis toutes les 12 heures, télécharge les nouvelles versions en arrière-plan (le plus souvent un petit *delta*) et les installe **à la fermeture de l'application**, ou tout de suite avec **Redémarrer et mettre à jour** (dans *Paramètres → Mises à jour*, dans le menu latéral ou dans le menu de l'icône). Vous pouvez désactiver la recherche ou l'installation automatique, et recevoir les préversions, dans la même section des paramètres.
 
 ### Désinstallation
 
@@ -80,7 +83,8 @@ Astuce : donnez une adresse IP fixe à la lampe (réservation DHCP dans votre bo
 ## Confidentialité
 
 - Votre écran ne quitte jamais votre PC : chaque image est réduite en petite miniature en mémoire, et seule une couleur est envoyée à la lampe.
-- Le trafic reste sur votre réseau local : commandes UDP vers la lampe (port 4003) et multicast de découverte (239.255.255.250, ports 4001 / 4002). Pas de connexion à Internet, pas de compte, pas de télémétrie.
+- Le trafic vers la lampe reste sur votre réseau local : commandes UDP (port 4003) et multicast de découverte (239.255.255.250, ports 4001 / 4002). Pas de compte, pas de télémétrie.
+- La seule connexion à Internet est vers GitHub, pour rechercher les mises à jour de l'application ; elle se désactive dans *Paramètres → Mises à jour*.
 - Les réglages sont dans `%APPDATA%\GoveeScreen\config.json`.
 
 ## Compiler depuis les sources
@@ -93,6 +97,8 @@ cd GoveeScreen
 dotnet run                          # compile et lance (Debug)
 dotnet test Tests                   # tests unitaires
 ```
+
+Une copie lancée avec `dotnet run` n'est pas installée : les mises à jour automatiques y sont désactivées (la page des paramètres l'indique). Pour tester les mises à jour en local sans GitHub, lancez une copie installée ou portable avec `GOVEESCREEN_UPDATE_SOURCE` pointant vers un dossier de paquets construits par `scripts/pack.ps1`.
 
 GoveeScreen n'autorise qu'une copie par dossier de données. Pour lancer une copie de développement à côté de la version installée sans toucher à ses réglages, démarrez l'exe compilé avec la variable d'environnement `GOVEESCREEN_HOME` pointant vers un autre dossier.
 

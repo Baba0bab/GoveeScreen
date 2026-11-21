@@ -19,13 +19,20 @@ dotnet run                                           # real configuration (%APPD
 ```
 
 The user usually has their own copy running (single instance per data folder): `dotnet run` then exits silently.
-Don't kill it. For a separate copy, start the built exe with `GOVEESCREEN_HOME` set to a scratch folder (own
+Don't kill it. Until v2 is installed with the installer, the user's copy may run **straight from
+`bin\Release\net10.0-windows10.0.26100.0\`** (their HKCU Run value points there): building Release overwrites the
+exe it runs from, and on 2026-11-21 their copy stopped during such a session. Check
+`reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v GoveeScreen` before building Release, and warn them.
+For a separate copy, start the built exe with `GOVEESCREEN_HOME` set to a scratch folder (own
 config, own single-instance mutex). Set the variable only in the process that starts the exe; never give the user
 `$env:` commands to paste, they stay set in their terminal.
 
 ## Layout
 
-- `Program.cs`: Velopack hooks (`VelopackApp.Build().Run()`, removes the Run key on uninstall), then WPF.
+- `Program.cs`: Velopack hooks (`VelopackApp.Build().Run()`, removes the Run key on uninstall, applies a downloaded
+  update at startup when automatic installation is on), then WPF.
+- `Core/AppUpdater.cs`: updates from GitHub Releases (Velopack `GithubSource`), checked 20 s after startup then every
+  12 h by `AppController`; installed on exit, or on *Redémarrer et mettre à jour* (settings, sidebar, tray menu).
 - `Core/`: no WPF. `ScreenCapturer.cs` (Windows.Graphics.Capture + D3D11, HLSL downscale shader), `FrameAnalyzer.cs`,
   `SyncEngine.cs`, `GoveeClient.cs` (UDP 4003 commands, 4001 / 4002 discovery), `MonitorService.cs`, `SessionWatcher.cs`,
   `StartupManager.cs` (HKCU Run), `AppConfig.cs`.
@@ -48,6 +55,13 @@ config, own single-instance mutex). Set the variable only in the process that st
   Always pass `-ProcessId`: without it the scripts pick the user's copy. Desktop screenshots (computer use) hide the
   user's other windows: use these scripts. README screenshots live in `docs/screenshots/`.
 - A dev copy with a lamp IP really sends UDP packets to that address: use an empty IP or an address with no device.
+- **Updates** (tested end to end on 2026-11-21, without installing anything): `pack.ps1` two versions into the same
+  scratch folder (delta), extract the first one's `GoveeScreen-win-Portable.zip`, start its root `GoveeScreen.exe`
+  (a launcher: the app runs from `current\`) with `GOVEESCREEN_HOME` and `GOVEESCREEN_UPDATE_SOURCE=<packages folder>`
+  set; the automatic check runs after 20 s, then *Redémarrer et mettre à jour*. The portable copy updates in place.
+  Against GitHub, the legacy `1.0.0` Python release (no Velopack assets) is skipped: the check reports up to date.
+- UI Automation does not expose `SettingCard` descriptions: read them from a capture. Scroll a page with the
+  `ScrollPattern` of `PageScroller` (`SetScrollPercent`).
 - **Lamp, GPU, games**: anything about the real lamp, capture performance or full-screen games must be validated by
   the user on their machine.
 
@@ -58,7 +72,7 @@ CHANGELOG.md (exact heading, source of the release notes, in English), commit on
 push the tag → `.github/workflows/release.yml` builds and publishes.
 
 **Always ask the user for explicit confirmation before** `git push`, creating or pushing a tag,
-`gh release create/edit/delete` or `gh repo edit`: the repository is public, and once automatic updates ship, a
+`gh release create/edit/delete` or `gh repo edit`: the repository is public, and a
 release is downloaded by every installed copy. Never delete a published release: publish a fix.
 
 ## Known pitfalls

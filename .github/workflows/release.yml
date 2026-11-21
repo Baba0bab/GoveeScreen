@@ -82,6 +82,7 @@ jobs:
 
           Requires Windows 10 (version 2004) or Windows 11, x64. Nothing else to install.
           Make sure *LAN Control* is enabled for your lamp in the Govee Home app.
+          Already installed? GoveeScreen updates itself.
           Checksums: ``SHA256SUMS.txt``.
 
           ## Changes

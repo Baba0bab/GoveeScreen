@@ -25,10 +25,14 @@ public sealed class AppController : IDisposable
     private volatile EngineUpdate? _pendingColor;     // dernière couleur reçue, affichée au retour de la fenêtre
     private DateTime _lastUiUpdate = DateTime.MinValue;
     private bool _lockPaused;                         // pause posée par le verrouillage, levée au déverrouillage
+    private readonly DispatcherTimer _appUpdateTimer;
+    private bool _installScheduled;                   // installation confiée au programme de mise à jour
+    private bool _appUpdateNotified;
 
     public AppConfig Config { get; }
     public GoveeClient Govee { get; }
     public SyncEngine Engine { get; }
+    public AppUpdater Updater { get; }
     public List<MonitorInfo> Monitors { get; private set; } = new();
     public MonitorInfo? SelectedMonitor { get; private set; }
     public EngineStatus Status { get; private set; } = EngineStatus.Starting;
@@ -55,6 +59,20 @@ public sealed class AppController : IDisposable
         _tray.BrightnessSelected += SetBrightnessLevel;
         _tray.MonitorSelected += SelectMonitor;
         _tray.ExitRequested += Exit;
+        _tray.UpdateRequested += RestartToUpdate;
+        _tray.NotificationClicked += ShowWindow;
+
+        Updater = new AppUpdater(Config.AppUpdatePrerelease);
+        Updater.StateChanged += () => _dispatcher.BeginInvoke(OnAppUpdateChanged);
+
+        // Mises à jour : première recherche peu après le démarrage, puis toutes les 12 h
+        _appUpdateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        _appUpdateTimer.Tick += (_, _) =>
+        {
+            _appUpdateTimer.Interval = TimeSpan.FromHours(12);
+            if (Config.AppUpdateCheck)
+                _ = Updater.CheckAndDownloadAsync();
+        };
 
         _session = new SessionWatcher();
         _session.Locked += OnSessionLocked;
@@ -72,6 +90,8 @@ public sealed class AppController : IDisposable
     {
         Govee.TurnOn();
         Engine.Start();
+        if (Updater.IsInstalled)
+            _appUpdateTimer.Start();
     }
 
     // ===== Fenêtre =====
@@ -139,8 +159,47 @@ public sealed class AppController : IDisposable
         if (_exiting)
             return;
         _exiting = true;
+        _appUpdateTimer.Stop();
+        // Mise à jour téléchargée : installée en silence une fois l'application fermée
+        if (!_installScheduled && Config.AppUpdateAutoInstall && Updater.State == AppUpdateState.Ready)
+            _installScheduled = Updater.ScheduleInstall(restart: false);
         _window?.Close();
         Application.Current.Shutdown();
+    }
+
+    // ===== Mises à jour de l'application =====
+
+    /// <summary>Installe la mise à jour téléchargée, puis relance l'application.</summary>
+    public void RestartToUpdate()
+    {
+        if (Updater.State != AppUpdateState.Ready)
+            return;
+        if (!Updater.ScheduleInstall(restart: true))
+        {
+            ShowWindow();
+            return;   // l'erreur s'affiche dans les paramètres
+        }
+        _installScheduled = true;
+        Exit();
+    }
+
+    public void SetAppUpdatePrerelease(bool include)
+    {
+        Config.AppUpdatePrerelease = include;
+        Config.Save();
+        Updater.SetIncludePrerelease(include);
+    }
+
+    private void OnAppUpdateChanged()
+    {
+        _window?.SyncAppUpdate();
+        if (Updater.State != AppUpdateState.Ready || _appUpdateNotified)
+            return;
+        _appUpdateNotified = true;
+        _tray.ShowNotification($"GoveeScreen {Updater.AvailableVersion} est prête",
+            Config.AppUpdateAutoInstall
+                ? "Elle sera installée à la fermeture de l'application, ou tout de suite depuis le menu de l'icône."
+                : "Installez-la depuis le menu de l'icône ou les paramètres (Redémarrer et mettre à jour).");
     }
 
     /// <summary>Quitter éteint la lampe, comme la V1.</summary>
@@ -333,5 +392,6 @@ public sealed class AppController : IDisposable
     };
 
     private TrayState GetTrayState() =>
-        new(StatusTitle(Status), Engine.IsPaused, Engine.BrightnessLevel, Monitors, SelectedMonitor);
+        new(StatusTitle(Status), Engine.IsPaused, Engine.BrightnessLevel, Monitors, SelectedMonitor,
+            Updater.State == AppUpdateState.Ready ? Updater.AvailableVersion : null);
 }

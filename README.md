@@ -38,6 +38,7 @@ GoveeScreen reads the dominant color of your screen and sends it to a Govee ligh
 - **Session lock**: optionally pause and turn the lamp off when you lock Windows, and turn it back on as soon as the lock screen lights up.
 - **System tray**: pause, intensity and display from the tray menu without opening the window. Hidden, the window is destroyed and the app uses about 70 MB.
 - **Start with Windows**, optionally hidden in the tray.
+- **Automatic updates** from GitHub Releases: small delta downloads, installed when you close the app.
 - Keyboard shortcuts: `Ctrl+1` … `Ctrl+4` to switch pages, `Ctrl+P` to pause / resume.
 
 | Lamp | Display | Settings |
@@ -62,9 +63,11 @@ GoveeScreen reads the dominant color of your screen and sends it to a Govee ligh
 > Get-FileHash .\GoveeScreen-win-Setup.exe -Algorithm SHA256
 > ```
 
-**Portable version**: `GoveeScreen-win-Portable.zip`, extract it anywhere and run `GoveeScreen.exe`.
+**Portable version**: `GoveeScreen-win-Portable.zip`, extract it anywhere and run `GoveeScreen.exe`. It can update itself too.
 
-To update, run the installer of the newer version: your settings are kept.
+### Updates
+
+The app checks GitHub Releases at startup and then every 12 hours, downloads new versions in the background (usually only a small *delta*) and installs them **when you close the app**, or right away with **Redémarrer et mettre à jour** (*Restart and update*: in *Paramètres → Mises à jour*, in the side menu or in the tray icon's menu). You can turn off automatic checks or automatic installation, and opt in to pre-releases, in the same settings section.
 
 ### Uninstalling
 
@@ -82,7 +85,8 @@ Tip: give the lamp a fixed IP address (DHCP reservation in your router), otherwi
 ## Privacy
 
 - Your screen never leaves your PC: each frame is reduced to a small thumbnail in memory, and only one color is sent to the lamp.
-- Network traffic stays on your local network: UDP commands to the lamp (port 4003) and the discovery multicast (239.255.255.250, ports 4001 / 4002). No internet connection, no account, no telemetry.
+- Lamp traffic stays on your local network: UDP commands to the lamp (port 4003) and the discovery multicast (239.255.255.250, ports 4001 / 4002). No account, no telemetry.
+- The only internet connection is to GitHub, to check for app updates; it can be turned off in *Paramètres → Mises à jour*.
 - Settings are stored in `%APPDATA%\GoveeScreen\config.json`.
 
 ## Building from source
@@ -95,6 +99,8 @@ cd GoveeScreen
 dotnet run                          # build and start (Debug)
 dotnet test Tests                   # unit tests
 ```
+
+A copy started with `dotnet run` is not installed: automatic updates are disabled there (the settings page says so). To test updates locally without GitHub, start an installed or portable copy with `GOVEESCREEN_UPDATE_SOURCE` set to a folder of packages built by `scripts/pack.ps1`.
 
 GoveeScreen allows only one copy per data folder. To run a development copy next to an installed one without touching its settings, start the built exe with the `GOVEESCREEN_HOME` environment variable set to another folder.
 
@@ -109,13 +115,14 @@ Releases are published by GitHub Actions when a version tag is pushed, see [docs
 ## Project structure
 
 ```
-├─ Program.cs             entry point (installer hooks, then WPF)
+├─ Program.cs             entry point (installer / updater hooks, then WPF)
 ├─ Core/                  capture, analysis, lamp protocol, configuration (no UI)
 │  ├─ ScreenCapturer.cs   GPU capture (Windows.Graphics.Capture + Direct3D 11), shader downscale
 │  ├─ FrameAnalyzer.cs    black bars, average color, Rec. 709 brightness
 │  ├─ SyncEngine.cs       capture → analysis → send loop (max 30 messages/s, only on change)
 │  ├─ GoveeClient.cs      Govee LAN protocol (UDP 4003 commands, 4001 / 4002 discovery)
 │  ├─ MonitorService.cs   DXGI enumeration and monitor model names
+│  ├─ AppUpdater.cs       app updates from GitHub Releases (Velopack)
 │  └─ SessionWatcher.cs   session lock / unlock and display power (Win32)
 ├─ UI/                    tray icon and its native menu (Win32), shared controls
 ├─ Themes/Theme.xaml      colors and control styles

@@ -18,6 +18,9 @@ public class AppConfig
     public bool CloseToTray { get; set; }      // ✕ masque la fenêtre au lieu de quitter
     public bool PauseOnLock { get; set; }      // pause au verrouillage de la session, reprise au déverrouillage
     public bool LampOnLockScreen { get; set; } // avec PauseOnLock : lampe rallumée quand l'écran de verrouillage s'allume
+    public bool AppUpdateCheck { get; set; } = true;         // recherche au démarrage puis toutes les 12 h
+    public bool AppUpdateAutoInstall { get; set; } = true;   // installation à la fermeture (ou au démarrage suivant)
+    public bool AppUpdatePrerelease { get; set; }            // inclure les préversions (bêta)
 
     /// <summary>
     /// Dossier de données distinct (développement, captures d'écran) : la config réelle
