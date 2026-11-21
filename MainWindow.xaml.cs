@@ -271,7 +271,101 @@ public partial class MainWindow : Window
         bool any = _app.Monitors.Count > 0;
         MonitorsList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         NoMonitorPlaceholder.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+        SyncHomeMonitors();
         UpdateSummaryTiles();
+    }
+
+    /// <summary>Au-delà, les segments de l'accueil laissent place à une liste déroulante.</summary>
+    private const int MaxMonitorSegments = 4;
+
+    /// <summary>Liste d'écrans d'où viennent les segments de l'accueil.</summary>
+    private List<MonitorInfo>? _homeMonitors;
+
+    /// <summary>
+    /// Choix de l'écran sur l'accueil : un segment par écran, reconstruits à chaque synchronisation
+    /// (la liste change au branchement d'un écran ou sur « Actualiser »). Masqué s'il n'y a qu'un écran.
+    /// </summary>
+    private void SyncHomeMonitors()
+    {
+        var monitors = _app.Monitors;
+        var wasUpdating = _updatingUi;
+        _updatingUi = true;
+
+        // Même liste (simple changement d'écran) : on ne reconstruit pas les segments en plein clic
+        if (ReferenceEquals(_homeMonitors, monitors))
+        {
+            foreach (var segment in MonitorSegments.Children.OfType<RadioButton>())
+                segment.IsChecked = Equals(segment.Tag, _app.SelectedMonitor);
+            MonitorCombo.SelectedItem = MonitorCombo.Items.OfType<ComboBoxItem>()
+                .FirstOrDefault(item => Equals(item.Tag, _app.SelectedMonitor));
+            _updatingUi = wasUpdating;
+            return;
+        }
+        _homeMonitors = monitors;
+
+        HomeMonitorCard.Visibility = monitors.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        bool useCombo = monitors.Count > MaxMonitorSegments;
+        MonitorSegmentsHost.Visibility = useCombo ? Visibility.Collapsed : Visibility.Visible;
+        MonitorCombo.Visibility = useCombo ? Visibility.Visible : Visibility.Collapsed;
+        MonitorSegments.Children.Clear();
+        MonitorCombo.Items.Clear();
+
+        var labels = MonitorLabels(monitors);
+        for (int i = 0; i < monitors.Count; i++)
+        {
+            var monitor = monitors[i];
+            bool selected = monitor == _app.SelectedMonitor;
+            string tooltip = monitor.IsPrimary ? $"{monitor.Resolution} · {Loc.T("Display.Primary")}" : monitor.Resolution;
+            if (useCombo)
+            {
+                var item = new ComboBoxItem { Content = labels[i], Tag = monitor, ToolTip = tooltip };
+                MonitorCombo.Items.Add(item);
+                if (selected)
+                    MonitorCombo.SelectedItem = item;
+            }
+            else
+            {
+                var segment = new RadioButton
+                {
+                    Style = (Style)FindResource("Segment"),
+                    GroupName = "HomeMonitor",
+                    Tag = monitor,
+                    ToolTip = tooltip,
+                    Content = new TextBlock { Text = labels[i], MaxWidth = 160, TextTrimming = TextTrimming.CharacterEllipsis },
+                    IsChecked = selected
+                };
+                segment.Checked += MonitorSegment_Checked;
+                MonitorSegments.Children.Add(segment);
+            }
+        }
+        _updatingUi = wasUpdating;
+    }
+
+    /// <summary>Nom commercial de chaque écran, numéroté quand plusieurs écrans portent le même.</summary>
+    private static string[] MonitorLabels(IReadOnlyList<MonitorInfo> monitors)
+    {
+        var labels = new string[monitors.Count];
+        var seen = new Dictionary<string, int>();
+        for (int i = 0; i < monitors.Count; i++)
+        {
+            string name = monitors[i].Name;
+            bool duplicate = monitors.Count(m => m.Name == name) > 1;
+            seen[name] = seen.GetValueOrDefault(name) + 1;
+            labels[i] = duplicate ? $"{name} {seen[name]}" : name;
+        }
+        return labels;
+    }
+
+    private void MonitorSegment_Checked(object sender, RoutedEventArgs e)
+    {
+        if (!_updatingUi && sender is RadioButton { Tag: MonitorInfo monitor })
+            _app.SelectMonitor(monitor);
+    }
+
+    private void MonitorCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_updatingUi && MonitorCombo.SelectedItem is ComboBoxItem { Tag: MonitorInfo monitor })
+            _app.SelectMonitor(monitor);
     }
 
     private void RefreshMonitors_Click(object sender, RoutedEventArgs e) => _app.LoadMonitors();

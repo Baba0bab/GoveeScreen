@@ -40,6 +40,7 @@
   "Home.Rendering": "Renderizado",
   "Home.Intensity": "Intensidad",
   "Home.IntensityDesc": "Multiplica el brillo captado de la pantalla.",
+  "Home.DisplayDesc": "Pantalla cuyos colores reproduce la lámpara.",
   "Home.Configuration": "Configuración",
   "Home.TileDeviceTooltip": "Cambiar de lámpara",
   "Home.TileDisplayTooltip": "Cambiar de pantalla",

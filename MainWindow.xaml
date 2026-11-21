@@ -152,6 +152,18 @@
                                 </StackPanel>
                             </Border>
                         </ui:SettingCard>
+                        <!-- Choix de l'écran en un clic : segments remplis dans le code (liste déroulante
+                             au-delà de MaxMonitorSegments écrans), masqué s'il n'y a qu'un écran -->
+                        <ui:SettingCard x:Name="HomeMonitorCard" Icon="&#xE7F4;" Header="{ui:Tr Nav.Display}"
+                                        Description="{ui:Tr Home.DisplayDesc}" Visibility="Collapsed">
+                            <Grid>
+                                <Border x:Name="MonitorSegmentsHost" Style="{StaticResource SegmentedHost}">
+                                    <StackPanel x:Name="MonitorSegments" Orientation="Horizontal"/>
+                                </Border>
+                                <ComboBox x:Name="MonitorCombo" Width="230" Visibility="Collapsed"
+                                          SelectionChanged="MonitorCombo_SelectionChanged"/>
+                            </Grid>
+                        </ui:SettingCard>
 
                         <TextBlock Text="{ui:Tr Home.Configuration}" Style="{StaticResource SectionHeader}"/>
                         <UniformGrid x:Name="SummaryTiles" Columns="3" Margin="0,0,-8,-8">

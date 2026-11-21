@@ -40,6 +40,7 @@
   "Home.Rendering": "Rendering",
   "Home.Intensity": "Intensity",
   "Home.IntensityDesc": "Multiplies the brightness captured from the screen.",
+  "Home.DisplayDesc": "Display whose colors the lamp reproduces.",
   "Home.Configuration": "Configuration",
   "Home.TileDeviceTooltip": "Change lamp",
   "Home.TileDisplayTooltip": "Change display",

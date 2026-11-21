@@ -40,6 +40,7 @@
   "Home.Rendering": "Darstellung",
   "Home.Intensity": "Intensität",
   "Home.IntensityDesc": "Vervielfacht die vom Bildschirm erfasste Helligkeit.",
+  "Home.DisplayDesc": "Bildschirm, dessen Farben die Lampe wiedergibt.",
   "Home.Configuration": "Konfiguration",
   "Home.TileDeviceTooltip": "Lampe wechseln",
   "Home.TileDisplayTooltip": "Bildschirm wechseln",
