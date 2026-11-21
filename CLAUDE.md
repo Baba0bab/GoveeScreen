@@ -34,7 +34,7 @@ config, own single-instance mutex). Set the variable only in the process that st
 - `Core/AppUpdater.cs`: updates from GitHub Releases (Velopack `GithubSource`), checked 20 s after startup then every
   12 h by `AppController`; installed on exit, or on *Redémarrer et mettre à jour* (settings, sidebar, tray menu).
 - `Core/`: no WPF. `ScreenCapturer.cs` (Windows.Graphics.Capture + D3D11, HLSL downscale shader), `FrameAnalyzer.cs`,
-  `SyncEngine.cs`, `GoveeClient.cs` (UDP 4003 commands, 4001 / 4002 discovery), `MonitorService.cs`, `SessionWatcher.cs`,
+  `SyncEngine.cs`, `StaticScreenDetector.cs` (lamp off on a still screen), `GoveeClient.cs` (UDP 4003 commands, 4001 / 4002 discovery), `MonitorService.cs`, `SessionWatcher.cs`,
   `StartupManager.cs` (HKCU Run), `AppConfig.cs`, `Loc.cs` (translations).
 - `AppController.cs` (lifecycle, tray, engine, `Restart()`), `MainWindow.xaml` (pages), `UI/TrayIcon.cs` (Win32 tray and menu).
 - `Localization/*.json`: interface texts, flat `"Area.Key": "text"` with `{0}` placeholders, embedded in the exe.

@@ -84,6 +84,10 @@ public partial class MainWindow : Window
         CloseToTraySwitch.IsChecked = _app.Config.CloseToTray;
         PauseOnLockSwitch.IsChecked = _app.Config.PauseOnLock;
         LampOnLockScreenSwitch.IsChecked = _app.Config.LampOnLockScreen;
+        StaticScreenOffSwitch.IsChecked = _app.Config.StaticScreenOff;
+        foreach (var segment in StaticScreenDelaySegments.Children.OfType<RadioButton>())
+            segment.Content = Loc.T("Settings.Minutes", segment.Tag);
+        CheckSegment(StaticScreenDelaySegments, _app.Config.StaticScreenOffMinutes.ToString(CultureInfo.InvariantCulture));
         AppUpdateCheckSwitch.IsChecked = _app.Config.AppUpdateCheck;
         AppUpdateAutoInstallSwitch.IsChecked = _app.Config.AppUpdateAutoInstall;
         AppUpdatePrereleaseSwitch.IsChecked = _app.Config.AppUpdatePrerelease;
@@ -492,6 +496,20 @@ public partial class MainWindow : Window
         _app.Config.Save();
     }
 
+    private void StaticScreenOffSwitch_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi)
+            return;
+        _app.SetStaticScreenOff(StaticScreenOffSwitch.IsChecked == true, _app.Config.StaticScreenOffMinutes);
+    }
+
+    private void StaticScreenDelay_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_updatingUi || sender is not RadioButton { Tag: string tag })
+            return;
+        _app.SetStaticScreenOff(_app.Config.StaticScreenOff, int.Parse(tag, CultureInfo.InvariantCulture));
+    }
+
     /// <summary>
     /// Choix de la langue : « Système » d'abord (avec le drapeau de la langue de Windows), puis
     /// chaque langue dans sa propre langue. Le changement s'applique au redémarrage.
@@ -653,6 +671,7 @@ public partial class MainWindow : Window
                 color is not null ? Loc.T("Status.Color", $"#{color.R:X2}{color.G:X2}{color.B:X2}", Math.Round(color.Brightness))
                                   : Loc.T("Status.Waiting")),
             EngineStatus.Paused => ("NeutralBrush", Loc.T("Status.Paused"), Loc.T("Status.PausedDetail")),
+            EngineStatus.Idle => ("NeutralBrush", Loc.T("Status.Idle"), Loc.T("Status.IdleDetail")),
             EngineStatus.CaptureError => ("DangerBrush", Loc.T("Status.CaptureError"), Loc.T("Status.Retrying")),
             EngineStatus.NoMonitor => ("WarningBrush", Loc.T("Status.NoMonitor"), Loc.T("Status.NoMonitorDetail")),
             _ => ("WarningBrush", Loc.T("Status.Starting"), " ")

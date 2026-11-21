@@ -382,6 +382,26 @@
                                       Checked="LampOnLockScreenSwitch_Changed" Unchecked="LampOnLockScreenSwitch_Changed"/>
                         </ui:SettingCard>
 
+                        <TextBlock Text="{ui:Tr Settings.Inactivity}" Style="{StaticResource SectionHeader}"/>
+                        <ui:SettingCard Icon="&#xE708;" Header="{ui:Tr Settings.StaticScreenOff}"
+                                        Description="{ui:Tr Settings.StaticScreenOffDesc}">
+                            <CheckBox x:Name="StaticScreenOffSwitch" Style="{StaticResource Switch}"
+                                      Checked="StaticScreenOffSwitch_Changed" Unchecked="StaticScreenOffSwitch_Changed"/>
+                        </ui:SettingCard>
+                        <ui:SettingCard Header="{ui:Tr Settings.StaticScreenDelay}" Margin="38,0,0,4"
+                                        IsEnabled="{Binding IsChecked, ElementName=StaticScreenOffSwitch}"
+                                        Description="{ui:Tr Settings.StaticScreenDelayDesc}">
+                            <Border Style="{StaticResource SegmentedHost}">
+                                <StackPanel x:Name="StaticScreenDelaySegments" Orientation="Horizontal">
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="StaticScreenDelay" Tag="1" Checked="StaticScreenDelay_Checked"/>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="StaticScreenDelay" Tag="5" Checked="StaticScreenDelay_Checked"/>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="StaticScreenDelay" Tag="10" Checked="StaticScreenDelay_Checked"/>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="StaticScreenDelay" Tag="30" Checked="StaticScreenDelay_Checked"/>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="StaticScreenDelay" Tag="60" Checked="StaticScreenDelay_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </ui:SettingCard>
+
                         <TextBlock Text="{ui:Tr Settings.Window}" Style="{StaticResource SectionHeader}"/>
                         <ui:SettingCard Icon="&#xE711;" Header="{ui:Tr Settings.CloseToTray}"
                                         Description="{ui:Tr Settings.CloseToTrayDesc}">

@@ -1,6 +1,6 @@
 namespace GoveeScreenV2.Core;
 
-public enum EngineStatus { Starting, Active, Paused, CaptureError, NoMonitor }
+public enum EngineStatus { Starting, Active, Paused, CaptureError, NoMonitor, Idle }
 
 public record EngineUpdate(EngineStatus Status, byte R, byte G, byte B, double Brightness, string? MonitorName);
 
@@ -16,6 +16,8 @@ public record EngineUpdate(EngineStatus Status, byte R, byte G, byte B, double B
 /// ou plus aucune frame alors qu'une fenêtre plein écran est au premier plan),
 /// la boucle bascule automatiquement en capture de cette fenêtre, puis revient
 /// à la capture d'écran quand le plein écran se termine.
+/// Option : écran figé (couleur constante, aucune saisie) pendant <see cref="StaticScreenTimeout"/>
+/// → lampe éteinte, rallumée au premier changement d'image ou à la première saisie.
 /// </summary>
 public sealed class SyncEngine : IDisposable
 {
@@ -45,6 +47,12 @@ public sealed class SyncEngine : IDisposable
     private double _emaR, _emaG, _emaB, _emaBrightness;
     private long _lastEmaTimestamp;
     private bool _emaInitialized;
+    private bool _forceSend;                           // réveil après écran figé : renvoyer couleur et luminosité
+
+    private readonly StaticScreenDetector _staticScreen = new();
+    private volatile int _staticTimeoutMs;             // 0 = option désactivée
+    private volatile bool _idle;
+    private uint _lastInputTick;
 
     public int BrightnessLevel { get; set; } = 2;
     public bool SmoothTransitions { get; set; } = true;
@@ -64,6 +72,20 @@ public sealed class SyncEngine : IDisposable
     }
 
     public bool IsPaused => _paused;
+
+    /// <summary>Lampe éteinte parce que l'écran ne change plus.</summary>
+    public bool IsIdle => _idle;
+
+    /// <summary>Délai d'écran figé avant d'éteindre la lampe, null = jamais.</summary>
+    public TimeSpan? StaticScreenTimeout
+    {
+        get => _staticTimeoutMs > 0 ? TimeSpan.FromMilliseconds(_staticTimeoutMs) : null;
+        set
+        {
+            _staticTimeoutMs = value is { } t ? (int)Math.Clamp(t.TotalMilliseconds, 1000, int.MaxValue) : 0;
+            _wake.Set();   // désactivation pendant l'extinction : rallumer tout de suite
+        }
+    }
 
     public event Action<EngineUpdate>? Updated;
 
@@ -117,6 +139,7 @@ public sealed class SyncEngine : IDisposable
         long blackSince = -1;                          // début de la période "image entièrement noire"
         long lastFullscreenCheck = 0;
         IntPtr fallbackWindow = IntPtr.Zero;           // fenêtre plein écran capturée en secours
+        ResetStaticScreen();
 
         while (_running)
         {
@@ -126,6 +149,7 @@ public sealed class SyncEngine : IDisposable
                 capturer?.Dispose();
                 capturer = null;
                 _wake.WaitOne();
+                ResetStaticScreen();   // la reprise rallume la lampe (AppController)
                 continue;
             }
 
@@ -217,13 +241,16 @@ public sealed class SyncEngine : IDisposable
             {
                 int minInterval = _autoFps ? AutoIntervalMs : 1000 / _targetFps;
                 var result = capturer!.TryCaptureFrame(FrameTimeoutMs, minInterval, buffer!);
-                if (result == CaptureResult.Timeout)
-                    continue; // Écran statique ou réveil (pause, écran) : rien à faire
+                if (result != CaptureResult.Frame)
+                {
+                    // Écran statique, réveil (pause, écran) ou frame ignorée pour respecter la cadence
+                    if (result == CaptureResult.Skipped)
+                        lastFrame = Pacing.Now;
+                    CheckStaticScreen(null, activeMonitor);
+                    continue;
+                }
 
                 lastFrame = Pacing.Now;
-                if (result == CaptureResult.Skipped)
-                    continue; // Frame ignorée pour respecter la cadence
-
                 var color = FrameAnalyzer.Analyze(buffer!, capturer.SmallWidth, capturer.SmallHeight);
 
                 // Image entièrement noire : possible jeu plein écran que la capture ne voit pas
@@ -237,7 +264,8 @@ public sealed class SyncEngine : IDisposable
                     blackSince = -1;
                 }
 
-                ProcessColor(color, activeMonitor, ref lastSend);
+                if (CheckStaticScreen(color, activeMonitor))
+                    ProcessColor(color, activeMonitor, ref lastSend);
             }
             catch
             {
@@ -254,6 +282,40 @@ public sealed class SyncEngine : IDisposable
         }
 
         capturer?.Dispose();
+    }
+
+    private void ResetStaticScreen()
+    {
+        _staticScreen.Reset(Pacing.NowMs);
+        _idle = false;
+        _lastInputTick = UserInput.LastInputTick;
+    }
+
+    /// <summary>
+    /// Écran figé : éteint la lampe une fois le délai écoulé, la rallume au premier changement.
+    /// Faux tant que la lampe est éteinte (la couleur n'est alors pas envoyée).
+    /// </summary>
+    private bool CheckStaticScreen(FrameColor? color, MonitorInfo? monitor)
+    {
+        uint inputTick = UserInput.LastInputTick;
+        bool input = inputTick != _lastInputTick;
+        _lastInputTick = inputTick;
+
+        switch (_staticScreen.Update(Pacing.NowMs, color, input, _staticTimeoutMs))
+        {
+            case StaticScreenTransition.WentIdle:
+                _idle = true;
+                _govee.TurnOff();
+                Updated?.Invoke(new EngineUpdate(EngineStatus.Idle, 0, 0, 0, 0, monitor?.FriendlyName));
+                break;
+            case StaticScreenTransition.WokeUp:
+                _idle = false;
+                _govee.TurnOn();
+                _emaInitialized = false;   // repartir directement de l'image actuelle
+                _forceSend = true;
+                break;
+        }
+        return !_staticScreen.IsIdle;
     }
 
     /// <summary>
@@ -306,8 +368,11 @@ public sealed class SyncEngine : IDisposable
             Math.Abs(final.Item2 - _lastSentColor.g) >= ColorDeadband ||
             Math.Abs(final.Item3 - _lastSentColor.b) >= ColorDeadband;
         bool brightnessChanged = Math.Abs(brightness - _lastSentBrightness) > 1;
+        if (_forceSend)
+            colorChanged = brightnessChanged = true;
         if ((colorChanged || brightnessChanged) && Pacing.IsDue(lastSend, MinSendIntervalMs))
         {
+            _forceSend = false;
             if (colorChanged)
             {
                 _govee.SetColor(final.Item1, final.Item2, final.Item3);

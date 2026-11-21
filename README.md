@@ -36,6 +36,7 @@ GoveeScreen reads the dominant color of your screen and sends it to a Govee ligh
 - **Display choice**: pick which monitor the lamp follows, with the monitors' real model names.
 - **Intensity**: 50 %, 100 %, 200 % or *Max* brightness multiplier.
 - **Session lock**: optionally pause and turn the lamp off when you lock Windows, and turn it back on as soon as the lock screen lights up.
+- **Idle screen**: optionally turn the lamp off when the picture has not changed and nobody has touched the keyboard or mouse for a while (10 minutes by default); it turns back on at the next change.
 - **System tray**: pause, intensity and display from the tray menu without opening the window. Hidden, the window is destroyed and the app uses about 70 MB.
 - **Start with Windows**, optionally hidden in the tray.
 - **Automatic updates** from GitHub Releases: small delta downloads, installed when you close the app.
@@ -121,6 +122,7 @@ Releases are published by GitHub Actions when a version tag is pushed, see [docs
 │  ├─ ScreenCapturer.cs   GPU capture (Windows.Graphics.Capture + Direct3D 11), shader downscale
 │  ├─ FrameAnalyzer.cs    black bars, average color, Rec. 709 brightness
 │  ├─ SyncEngine.cs       capture → analysis → send loop (max 30 messages/s, only on change)
+│  ├─ StaticScreenDetector.cs  still screen + no input → lamp off until the next change
 │  ├─ GoveeClient.cs      Govee LAN protocol (UDP 4003 commands, 4001 / 4002 discovery)
 │  ├─ MonitorService.cs   DXGI enumeration and monitor model names
 │  ├─ AppUpdater.cs       app updates from GitHub Releases (Velopack)

@@ -36,6 +36,7 @@ GoveeScreen lit la couleur dominante de votre écran et l'envoie à une lampe Go
 - **Choix de l'écran** suivi par la lampe, avec le vrai nom commercial des moniteurs.
 - **Intensité** : multiplicateur de luminosité 50 %, 100 %, 200 % ou *Max*.
 - **Verrouillage de session** : en option, pause et lampe éteinte au verrouillage de Windows, rallumée dès que l'écran de verrouillage s'allume.
+- **Écran inactif** : en option, lampe éteinte quand l'image ne change plus et que personne n'a touché au clavier ni à la souris depuis un moment (10 minutes par défaut) ; elle se rallume au prochain changement.
 - **Zone de notification** : pause, intensité et écran depuis le menu de l'icône, sans ouvrir la fenêtre. Masquée, la fenêtre est détruite et l'application occupe environ 70 Mo.
 - **Démarrage avec Windows**, éventuellement masqué.
 - **Mises à jour automatiques** depuis les Releases GitHub : petits téléchargements delta, installés à la fermeture de l'application.

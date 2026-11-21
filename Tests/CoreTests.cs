@@ -105,6 +105,89 @@ public class PacingTests
     }
 }
 
+public class StaticScreenDetectorTests
+{
+    private const double Timeout = 10 * 60 * 1000;
+    private static readonly FrameColor Blue = new(20, 40, 200, 30);
+
+    private static StaticScreenDetector Started()
+    {
+        var detector = new StaticScreenDetector();
+        detector.Reset(0);
+        return detector;
+    }
+
+    [Fact]
+    public void StillScreenGoesIdleAfterTheDelay()
+    {
+        var detector = Started();
+        Assert.Equal(StaticScreenTransition.None, detector.Update(0, Blue, false, Timeout));
+        // No frame at all (the compositor sends none for a still screen)
+        Assert.Equal(StaticScreenTransition.None, detector.Update(Timeout - 1, null, false, Timeout));
+        Assert.Equal(StaticScreenTransition.WentIdle, detector.Update(Timeout, null, false, Timeout));
+        Assert.True(detector.IsIdle);
+        Assert.Equal(StaticScreenTransition.None, detector.Update(Timeout + 500, null, false, Timeout));
+    }
+
+    [Fact]
+    public void TinyColorChangesDoNotCount()
+    {
+        // Blinking caret, clock, video noise: the screen average moves by a few units at most
+        var detector = Started();
+        detector.Update(0, Blue, false, Timeout);
+        var nearlyBlue = Blue with { R = (byte)(Blue.R + StaticScreenDetector.ColorTolerance) };
+        detector.Update(Timeout / 2, nearlyBlue, false, Timeout);
+        Assert.Equal(StaticScreenTransition.WentIdle, detector.Update(Timeout, Blue, false, Timeout));
+    }
+
+    [Fact]
+    public void SlowDriftEventuallyCounts()
+    {
+        // Compared with the color at the start of the still period, not with the previous frame
+        var detector = Started();
+        detector.Update(0, Blue, false, Timeout);
+        detector.Update(1000, Blue with { B = 202 }, false, Timeout);
+        detector.Update(2000, Blue with { B = 204 }, false, Timeout);
+        Assert.Equal(StaticScreenTransition.None, detector.Update(Timeout + 1000, null, false, Timeout));
+        Assert.Equal(StaticScreenTransition.WentIdle, detector.Update(Timeout + 2000, null, false, Timeout));
+    }
+
+    [Fact]
+    public void ColorChangeOrInputWakesUp()
+    {
+        var detector = Started();
+        detector.Update(0, Blue, false, Timeout);
+        detector.Update(Timeout, null, false, Timeout);
+        Assert.Equal(StaticScreenTransition.WokeUp, detector.Update(Timeout + 1, Blue with { G = 90 }, false, Timeout));
+        Assert.False(detector.IsIdle);
+
+        detector.Update(3 * Timeout, null, false, Timeout);
+        Assert.True(detector.IsIdle);
+        Assert.Equal(StaticScreenTransition.WokeUp, detector.Update(3 * Timeout + 1, null, true, Timeout));
+        // The delay starts again from the wake-up
+        Assert.Equal(StaticScreenTransition.None, detector.Update(4 * Timeout, null, false, Timeout));
+    }
+
+    [Fact]
+    public void InputKeepsTheLampOn()
+    {
+        // Reading a still page while scrolling: the screen barely changes but someone is there
+        var detector = Started();
+        detector.Update(0, Blue, false, Timeout);
+        detector.Update(Timeout - 1000, Blue, true, Timeout);
+        Assert.Equal(StaticScreenTransition.None, detector.Update(Timeout + 1000, Blue, false, Timeout));
+    }
+
+    [Fact]
+    public void TurningTheOptionOffWakesUp()
+    {
+        var detector = Started();
+        detector.Update(Timeout, null, false, Timeout);
+        Assert.Equal(StaticScreenTransition.WokeUp, detector.Update(Timeout + 1, null, false, 0));
+        Assert.Equal(StaticScreenTransition.None, detector.Update(10 * Timeout, null, false, 0));
+    }
+}
+
 public class ShaderTests
 {
     // The shader is compiled at runtime by Windows' d3dcompiler_47.dll: a syntax error would

@@ -50,7 +50,8 @@ public sealed class AppController : IDisposable
             BrightnessLevel = Config.BrightnessLevel,
             SmoothTransitions = Config.SmoothTransitions,
             TargetFps = Config.CaptureFps,
-            AutoFps = Config.CaptureFpsAuto
+            AutoFps = Config.CaptureFpsAuto,
+            StaticScreenTimeout = StaticScreenTimeout(Config)
         };
         Engine.Updated += OnEngineUpdated;
 
@@ -335,6 +336,18 @@ public sealed class AppController : IDisposable
         Config.Save();
     }
 
+    /// <summary>Extinction de la lampe quand l'écran reste figé pendant <paramref name="minutes"/>.</summary>
+    public void SetStaticScreenOff(bool enabled, int minutes)
+    {
+        Config.StaticScreenOff = enabled;
+        Config.StaticScreenOffMinutes = minutes;
+        Config.Save();
+        Engine.StaticScreenTimeout = StaticScreenTimeout(Config);
+    }
+
+    private static TimeSpan? StaticScreenTimeout(AppConfig config) =>
+        config.StaticScreenOff ? TimeSpan.FromMinutes(Math.Clamp(config.StaticScreenOffMinutes, 1, 24 * 60)) : null;
+
     public void SetSmoothTransitions(bool smooth)
     {
         Engine.SmoothTransitions = smooth;
@@ -355,7 +368,7 @@ public sealed class AppController : IDisposable
         Config.DeviceModel = model ?? (changed ? null : Config.DeviceModel);
         Govee.DeviceIp = ip;
         Config.Save();
-        if (changed && !Engine.IsPaused)
+        if (changed && !Engine.IsPaused && !Engine.IsIdle)
             Govee.TurnOn();
         return changed;
     }
@@ -402,6 +415,7 @@ public sealed class AppController : IDisposable
     {
         EngineStatus.Active => "Status.Active",
         EngineStatus.Paused => "Status.Paused",
+        EngineStatus.Idle => "Status.Idle",
         EngineStatus.CaptureError => "Status.CaptureError",
         EngineStatus.NoMonitor => "Status.NoMonitor",
         _ => "Status.Starting"

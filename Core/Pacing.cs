@@ -17,6 +17,9 @@ internal static class Pacing
 
     public static long Now => Stopwatch.GetTimestamp();
 
+    /// <summary>Même horloge, en millisecondes.</summary>
+    public static double NowMs => Stopwatch.GetTimestamp() * 1000.0 / Stopwatch.Frequency;
+
     public static double ElapsedMs(long since) => Stopwatch.GetElapsedTime(since).TotalMilliseconds;
 
     /// <summary>Vrai si au moins <paramref name="intervalMs"/> (à la marge près) se sont écoulées.</summary>

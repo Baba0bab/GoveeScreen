@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- *Settings → Idle screen → Turn off when the screen is still*: the lamp turns off when the picture has not changed and the keyboard and mouse have not been used for a chosen delay (1 to 60 minutes, 10 by default), for example a paused video or a computer left on. It turns back on as soon as the picture changes or at the first input. Off by default.
+
+## [2.0.1] - 2026-11-21
+
+### Added
 - The interface is now available in English, French, German and Spanish. It follows the Windows display language by default (English when Windows uses another language); pick a language in *Settings → General → Language*, then restart the app from the button that appears.
 
 ## [2.0.0] - 2026-11-21
@@ -27,5 +32,6 @@ First public release of GoveeScreen 2, a complete rewrite in C# / .NET 10 + WPF 
 - Automatic updates from GitHub Releases: checked at startup and every 12 hours, downloaded in the background (delta packages), installed when the app closes or right away with *Redémarrer et mettre à jour* (settings, side menu or tray menu). Automatic checks, automatic installation and pre-releases can be turned on or off in *Paramètres → Mises à jour*.
 - Settings of the Python version (`~/govee_config.json`) imported on the first launch.
 
-[Unreleased]: https://github.com/Baba0bab/GoveeScreen/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Baba0bab/GoveeScreen/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/Baba0bab/GoveeScreen/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/Baba0bab/GoveeScreen/releases/tag/v2.0.0
