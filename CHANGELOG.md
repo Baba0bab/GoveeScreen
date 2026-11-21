@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-21
+
 First public release of GoveeScreen 2, a complete rewrite in C# / .NET 10 + WPF of the original Python app (kept on the `v1-python` branch).
 
 ### Added
@@ -22,4 +24,5 @@ First public release of GoveeScreen 2, a complete rewrite in C# / .NET 10 + WPF 
 - Automatic updates from GitHub Releases: checked at startup and every 12 hours, downloaded in the background (delta packages), installed when the app closes or right away with *Redémarrer et mettre à jour* (settings, side menu or tray menu). Automatic checks, automatic installation and pre-releases can be turned on or off in *Paramètres → Mises à jour*.
 - Settings of the Python version (`~/govee_config.json`) imported on the first launch.
 
-[Unreleased]: https://github.com/Baba0bab/GoveeScreen/commits/main
+[Unreleased]: https://github.com/Baba0bab/GoveeScreen/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Baba0bab/GoveeScreen/releases/tag/v2.0.0

@@ -30,7 +30,7 @@ try {
     if ($LASTEXITCODE) { throw "dotnet publish failed" }
 
     # 2. Release notes: the CHANGELOG.md section, shown in the application and on GitHub
-    $changelog = Get-Content (Join-Path $root "CHANGELOG.md") -Raw
+    $changelog = Get-Content (Join-Path $root "CHANGELOG.md") -Raw -Encoding utf8
     $pattern = '(?ms)^## \[' + [regex]::Escape($Version) + '\][^\n]*\n(.*?)(?=^## \[|\z)'
     $section = [regex]::Match($changelog, $pattern).Groups[1].Value
     $section = ($section -split "`n" | Where-Object { $_ -notmatch '^\[[^\]]+\]:' }) -join "`n"
